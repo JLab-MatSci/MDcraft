@@ -4,6 +4,10 @@
 #include <mdcraft/solver/potential/pair.h>
 #include <mdcraft/tools/threads.h>
 
+#ifdef mdcraft_ENABLE_CUDA
+#include <mdcraft/solver/cuda/solver_cuda.h>
+#endif
+
 #ifdef mdcraft_ENABLE_BPNN
 #include <mdcraft/solver/potential/maise_bpnn.h>
 #endif
@@ -57,24 +61,24 @@ py::class_<Potential>(m, "Potential")
 	})
 	;
 
-	py::class_<PotentialManyBody>(m, "PotentialManyBody")
-		.def(py::init<double>(),
-			 py::arg("Rcutoff") 
-		)
-		.def_property_readonly("rcut", [](PotentialManyBody& pot) -> double {
-			return pot.rcut();
-		})
-		;
+py::class_<PotentialManyBody>(m, "PotentialManyBody")
+	.def(py::init<double>(),
+		 py::arg("Rcutoff") 
+	)
+	.def_property_readonly("rcut", [](PotentialManyBody& pot) -> double {
+		return pot.rcut();
+	})
+	;
 
 #ifdef mdcraft_ENABLE_BPNN
-	py::class_<PotentialTernary>(m, "PotentialTernary")
-		.def(py::init<double>(),
-			 py::arg("Rcutoff") 
-		)
-		.def_property_readonly("rcut", [](PotentialTernary& pot) -> double {
-			return pot.rcut();
-		})
-		;
+py::class_<PotentialTernary>(m, "PotentialTernary")
+	.def(py::init<double>(),
+		 py::arg("Rcutoff") 
+	)
+	.def_property_readonly("rcut", [](PotentialTernary& pot) -> double {
+		return pot.rcut();
+	})
+	;
 #endif
 
 py::class_<LJs,Potential>(m, "LJs")
@@ -213,6 +217,25 @@ py::class_<Pair,Potential>(m, "Pair")
         py::arg("domain")
     )
 	.def("force", &MaiseBPNNPotential::force);
+#endif
+
+#ifdef mdcraft_ENABLE_CUDA_CRTP
+py::class_<BasePotential>(m, "PotentialCUDA")
+	.def(py::init([] (
+			// ???
+		) {
+			return new BasePotential();
+		})
+	)
+	;
+
+py::class_<cuLJs, BasePotential>(m, "cuLJs")
+	.def(py::init<>())
+	;
+
+py::class_<cuEAM, BasePotential>(m, "cuEAM")
+	.def(py::init<>())
+	;
 #endif
 
 }

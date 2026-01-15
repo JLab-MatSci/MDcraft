@@ -11,6 +11,12 @@
 
 #include <mdcraft/solver/dp-solver.h>
 
+#include <iostream>
+
+#ifdef mdcraft_ENABLE_CUDA
+#include <mdcraft/solver/cuda/solver_cuda.h>
+#endif
+
 #ifdef mdcraft_ENABLE_MLIP
 #include <mdcraft/solver/mlip.h>
 #endif
@@ -156,4 +162,77 @@ py::class_<Ternary, ISolver>(m, "Ternary")
 	.def("forces",  [](Ternary& self, Atoms& a, Atoms& aa, const NeibsList& l) { return self.forces(a, aa, l); } )
 	.def("virials", [](Ternary& self, Atoms& a, Atoms& aa, const NeibsList& l) { return self.virials(a, aa, l); } );
 #endif
+
+#ifdef mdcraft_ENABLE_CUDA_VARIANT
+py::class_<mdcraft::solver::cuda::Single>(m, "SingleCUDA")
+	.def(py::init<
+			Boundary&,
+			Thermostat&
+		>(), 
+		py::arg("boundary")   = mdcraft::solver::boundary::dummy_boundary,
+		py::arg("thermostat") = mdcraft::solver::thermostat::dummy_thermostat
+	)
+
+	.def("forces", &mdcraft::solver::cuda::Single::forces)
+	;
+
+#elif defined(mdcraft_ENABLE_CUDA_CRTP)
+
+py::class_<SingleSolver>(m, "SingleSolverCUDA")
+// constructors:
+
+	// depending on the actual type of pot given,
+	// resolve the needed Single solver
+	.def(py::init([] (
+		cuLJs& pot
+	) {
+		return new SingleCUDA<cuLJs>();
+	}))
+	.def(py::init([] (
+		cuEAM& pot
+	) {
+		return new SingleCUDA<cuEAM>();
+	}))
+
+// methods:
+	// .def("forces", &mdcraft::solver::cuda::Single::forces)
+	
+/*
+	.def("forces", [] (SingleCUDA<cuLJs>& self, Atoms& atoms, Atoms& neibs, NeibsList& nlist) {
+		self.forces(atoms, atoms, nlist);
+	})
+*/
+	.def("forces", [] (SingleSolver& self, cuLJs& pot, Atoms& atoms, Atoms& neibs, NeibsList& nlist) {
+		static_cast<SingleCUDA<cuLJs>&>(self).forces(atoms, atoms, nlist);
+	})
+
+	.def("forces", [] (SingleSolver& self, cuEAM& pot, Atoms& atoms, Atoms& neibs, NeibsList& nlist) {
+		static_cast<SingleCUDA<cuEAM>&>(self).forces(atoms, atoms, nlist);
+	})
+	;
+
+py::class_<MultiSolver>(m, "MultiSolverCUDA")
+	// depending on the actual type of pot given,
+	// resolve the needed Multi solver
+	.def(py::init([] (
+		cuLJs& pot
+	) {
+		return new MultiCUDA<cuLJs>();
+	}))
+	;
+
+	// .def(py::init<
+	// 		Boundary&,
+	// 		Thermostat&
+	// 	>(), 
+	// 	py::arg("boundary")   = mdcraft::solver::boundary::dummy_boundary,
+	// 	py::arg("thermostat") = mdcraft::solver::thermostat::dummy_thermostat
+	// )
+
+	// .def("forces", &mdcraft::solver::cuda::Single::forces)
+	;
+
+	;
+#endif
+
 }

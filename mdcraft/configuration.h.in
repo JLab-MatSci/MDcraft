@@ -13,6 +13,12 @@
 #cmakedefine mdcraft_ENABLE_TESTS
 #cmakedefine mdcraft_ENABLE_PROBLEMS
 #cmakedefine mdcraft_ENABLE_PYTHON
+#cmakedefine mdcraft_ENABLE_CUDA
+
+#ifdef mdcraft_ENABLE_CUDA
+#cmakedefine mdcraft_ENABLE_CUDA_CRTP
+#cmakedefine mdcraft_ENABLE_CUDA_VARIANT
+#endif
 
 #ifdef mdcraft_ENABLE_MPI
     #define if_mpi(...) __VA_ARGS__

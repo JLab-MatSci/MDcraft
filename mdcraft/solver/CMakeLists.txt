@@ -45,3 +45,7 @@ endif()
 install(TARGETS ${PROJECT_NAME}-${LIB}
     DESTINATION lib
 )
+
+if (mdcraft_ENABLE_CUDA)
+    add_subdirectory(cuda)
+endif()

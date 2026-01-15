@@ -1,4 +1,9 @@
 get_filename_component(LIB ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+
+if (mdcraft_ENABLE_CUDA)
+set_source_files_properties(_${LIB}.cxx PROPERTIES LANGUAGE CUDA)
+endif()
+
 add_library(_${PROJECT_NAME}_${LIB} MODULE _${LIB}.cxx)
 target_link_libraries(
                _${PROJECT_NAME}_${LIB} 

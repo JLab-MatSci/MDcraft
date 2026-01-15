@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.9)
-project (mdcraft C CXX)
+project (mdcraft C CXX CUDA)
 
 set(CMAKE_CXX_FLAGS_DEBUG      "-g")
 set(CMAKE_CXX_FLAGS_RELEASE   "-O3")
@@ -24,6 +24,7 @@ option(mdcraft_ENABLE_PROBLEMS       "Build problems"                           
 option(mdcraft_ENABLE_BPNN           "Behler-Parrinello NN potentials support"       OFF)
 option(mdcraft_ENABLE_DeePMD         "DeePmd NN potentials support"                  OFF)
 option(mdcraft_ENABLE_MLIP4          "MTP potentials support from MLIP4"             OFF)
+option(mdcraft_ENABLE_CUDA           "GPU CUDA acceleration"                         OFF)
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_definitions(-DDEBUG)
 endif()
@@ -38,6 +39,36 @@ else ()
   message(STATUS "Use standard threads")
   set(mdcraft_ENABLE_TBB OFF)
 endif ()
+
+if (mdcraft_ENABLE_CUDA)
+  option(mdcraft_ENABLE_CUDA_VARIANT
+      "Use custom variant for CUDA device applications"    ON)
+  option(mdcraft_ENABLE_CUDA_CRTP
+      "Use CRTP pattern for CUDA device applications"     OFF)
+
+  if (mdcraft_ENABLE_CUDA_VARIANT AND mdcraft_ENABLE_CUDA_CRTP)
+    message(FATAL_ERROR "Choose only one option for build with CUDA")
+  endif()
+
+  enable_language(CUDA)
+  find_package(CUDAToolkit REQUIRED)
+
+  if (mdcraft_ENABLE_VARIANT_CUDA)
+    include_directories(${PROJECT_NAME}/external)
+  endif()
+
+  # example for NVIDIA GeForce GTX 1080 (sm_61)
+  # and for Tesla V100 (sm_70)
+  set(CMAKE_CUDA_ARCHITECTURES 61 70)
+
+  set(CMAKE_CUDA_STANDARD 17)
+  set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+
+  set(CMAKE_CUDA_FLAGS_DEBUG "-g -G")
+  set(CMAKE_CUDA_FLAGS_RELEASE "-O3 --use_fast_math")
+
+  message(STATUS "CUDA enabled. Architectures: ${CMAKE_CUDA_ARCHITECTURES}")
+endif()
 
 find_package(Eigen3)
 
