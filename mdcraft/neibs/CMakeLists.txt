@@ -1,6 +1,11 @@
 # устанавливаем в переменную имя библиотеки по имени папки
 # write to a variable the library name according to folder name
 get_filename_component(LIB ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+
+if (mdcraft_ENABLE_CUDA)
+set_source_files_properties(verlet-list.cxx PROPERTIES LANGUAGE CUDA)
+endif()
+
 file(GLOB SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.cxx")
 add_library(${PROJECT_NAME}-${LIB} SHARED ${SOURCES})
 target_link_libraries(${PROJECT_NAME}-${LIB} 

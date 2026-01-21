@@ -1,34 +1,46 @@
 #pragma once
 
-#include "pair.h"
+#include "pair_crtp.h"
 #include <mdcraft/solver/potential/cuda/base_potential.cuh>
 
 namespace mdcraft::solver::cuda {
 
-class Single : public TPairSolver<Single>
-{
-public:
-	Single() {}
-	// Single(BasePotential& pot) {}
-
-	void forces_(Atoms& atoms, Atoms& neibs, NeibsList& nlist)
-	{
-	}
-};
-
 template <typename P>
-class TSingle : public Single
+class TSingle : public TPairSolver<TSingle<P>>
 {
 public:
-	TSingle() {}
+	TSingle() = default;
 
-	void forces(Atoms& atoms, Atoms& neibs, NeibsList& nlist) /*const*/
+	// for now ctor copies potential from host to device
+	// it is strange, as only potential itself must be
+	// responsible for its resource management
+	TSingle(Potential<P>* p)
 	{
-		mdcraft::solver::potential::cuda::k_forces<P><<<1,1>>>(potential_.get());
+		static_assert(std::is_trivially_copyable_v<std::remove_reference_t<P>>);
+		cudaMalloc(&potential_dev_, sizeof(P));
+		cudaMemcpy(potential_dev_, p, sizeof(P), cudaMemcpyHostToDevice);
 	}
+
+	// NO DTOR TO FREE MEMORY. ELSE WE LOOSE TRIVIALLY COPYABLE CLASS
+	/*~TSingle()
+	{
+		cudaFree(potential_dev_);
+	}*/
+
+#ifdef mdcraft_ENABLE_CUDA_THRUST
+	__device__ void force_one(
+		data::Atom&             atom,
+		data::Atom*             neibs,
+		neibs::NeibsListOneDev& nlist
+	)
+	{
+		potential_dev_->force(atom, neibs, nlist);
+	}
+#endif
 
 private:
-	std::shared_ptr<Potential<P>> potential_;
+	Potential<P>* potential_dev_;
+
 };
 
 } // namespace mdcraft::solver::cuda

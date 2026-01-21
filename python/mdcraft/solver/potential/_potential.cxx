@@ -1,4 +1,6 @@
 #include <mdcraft/configuration.h>
+
+#include <mdcraft/configuration.h>
 #include <mdcraft/solver/potential/LJs.h>
 #include <mdcraft/solver/potential/EAM.h>
 #include <mdcraft/solver/potential/pair.h>

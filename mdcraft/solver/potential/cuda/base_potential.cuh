@@ -1,26 +1,25 @@
 #pragma once
 
-#include <string>
-#include <functional>
+#include <mdcraft/configuration.h>
+
+#include <mdcraft/data/atom.h>
+#include <mdcraft/solver/stepper/base.h>
 
 namespace mdcraft { 
 namespace solver { 
 namespace potential {
 namespace cuda {
 
-// using kernel_type = __device__ void(*)();
-
-// __device__ void test_kernel(char* a, std::string s)
-// {
-
-// }
-
-// void(*pp)(char * a, std::string s) = test_kernel;
+using NeibsList = neibs::List;
+using Atoms     = mdcraft::data::Atoms;
+using AtomsDev  = mdcraft::data::AtomsDev;
+using NeibsListOne = ::mdcraft::neibs::ListOne;
 
 enum class Tag
 {
 	NonImpl,
-	cuLJs
+	cuLJs,
+	cuEAM
 };
 
 class BasePotential
@@ -36,41 +35,22 @@ template <typename P>
 class TBasePotential : public BasePotential
 {
 public:
-	// BasePotential(kernel_type k)
-	// 	: kernel_(k) {}
-
-	__device__ void forces() /*const*/
+#ifdef mdcraft_ENABLE_CUDA_THRUST
+	__device__ void force(
+		data::Atom&             atom,
+		data::Atom*             neibs, 
+		neibs::NeibsListOneDev& nlist
+	) /*const*/
 	{
-		static_cast<P*>(this)->forces();
+		static_cast<P*>(this)->force_impl(atom, neibs, nlist);
 	}
+#endif
 
 	constexpr Tag tag() /*const*/
 	{
 		return static_cast<P*>(this)->tag();
 	}
-protected:
-	//Kernel kernel_;
 };
-
-template <typename P>
-__global__ void k_forces(TBasePotential<P>* pot)
-{
-	pot->forces();
-}
-
-// class BasePotential : public TBasePotential<BasePotential>
-// {
-
-// };
-
-// some tests...
-/*
-class DynPolyBase
-{
-public:
-	virtual __device__ void forces() = 0;
-};
-*/
 
 } // cuda
 } // potential

@@ -1,4 +1,7 @@
 #pragma once
+
+#include <mdcraft/configuration.h>
+
 #include <vector>
 #include <mdcraft/data/vector.h>
 #include <mdcraft/data/matrix.h>
@@ -12,9 +15,15 @@ using namespace mdcraft::tools;
 #include <unsupported/Eigen/CXX11/Tensor> 
 #endif
 
+#ifdef mdcraft_ENABLE_CUDA_THRUST
+#include <thrust/host_vector.h>
+#include <thrust/device_vector.h>
+#endif
+
+#include <iostream>
+
 namespace mdcraft {
 namespace data {
-
 
 /// @brief Simple structure for representing atom properties.
 /// The structure is 8-byte aligned (take this into account when adding new fields).
@@ -38,6 +47,10 @@ struct Atom {
 };
 
 using Atoms = std::vector<Atom>;
+
+#ifdef mdcraft_ENABLE_CUDA_THRUST
+using AtomsDev = thrust::device_vector<Atom>;
+#endif
 
 } // data
 } // mdcraft

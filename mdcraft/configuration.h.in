@@ -18,6 +18,8 @@
 #ifdef mdcraft_ENABLE_CUDA
 #cmakedefine mdcraft_ENABLE_CUDA_CRTP
 #cmakedefine mdcraft_ENABLE_CUDA_VARIANT
+#cmakedefine mdcraft_ENABLE_CUDA_THRUST
+#include <cuda_runtime.h>
 #endif
 
 #ifdef mdcraft_ENABLE_MPI

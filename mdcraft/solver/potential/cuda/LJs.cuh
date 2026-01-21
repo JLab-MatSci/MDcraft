@@ -14,42 +14,50 @@ namespace cuda {
 class cuLJs : public TBasePotential<cuLJs> {
 public:
 	cuLJs() {}
+
 	// cuLJs(
 	// 	double aVr,
 	// 	double rVr,
 	// 	double Rcutoff
 	// );
 
-	// void   value(Atoms::iterator atom, Atoms& neibs, NeibsListOne& nlist);
-
-	// void   virial(Atoms::iterator atom, Atoms& neibs, NeibsListOne& nlist);
-
-	// void   force(Atoms::iterator atom, Atoms& neibs, NeibsListOne& nlist);
-
-	// __device__ void forces() /*const*/;
-	__device__ void forces(
-	/* take info on all the atoms:
-		total number,
-		all positions,
-		all types,
-		neighbors' info   !	
-	 */
+#ifdef mdcraft_ENABLE_CUDA_THRUST
+	__device__ void force_impl(
+		data::Atom&             atom,
+		data::Atom*             neibs, 
+		neibs::NeibsListOneDev& nlist
 	) /*const*/
 	{
-		printf("__device__ cuLJs::forces\n");
+		// std::vector<vector> rall(nlist.size());
+		// std::vector<double> r2  (nlist.size());
 
-		// test use of kernel:
-		// kernel_();
+		for (auto i = 0; i < nlist.size; ++i) 
+		{
+			const auto& j = nlist[i];
+			auto& neib = neibs[i];
 
-		/* 1. evaluate tid from CUDA */
+			vector const r_ji = neib.r - atom.r;
+			double const r2ij = r_ji.squaredNorm();
 
-		/* 2. no loop, but if (ii < n_total) */
+			// r2[i]   = r2ij;
+			// rall[i] = r_ji;
+		}
 
-		/* 3. evaluate energy, force, virial and save into some form on GPU */
+		// std::size_t natoms = 0;
+		// for (auto i = 0; i < nlist.size(); i++)
+		// {
+		// 	if (r2[i] > R2cut) continue;
+		// 	if (r2[i] < 1e-15) continue;
 
-		/* 4. move to CPU */
+		// 	r2[natoms] = r2[i];
+		// 	rall[natoms] = rall[i];
+
+		// 	++natoms;
+		// }
+
+		// atom.f += force(rall.data(), r2.data(), natoms);
 	}
-
+#endif
 
 	constexpr Tag tag() const
 	{
@@ -64,15 +72,6 @@ private:
 	const double X2min = 1.2599210498948732;
 
 };
-
-// some tests...
-/*
-class DynPolyLJs : public DynPolyBase
-{
-public:
-	__device__ void forces(int x) override;
-};
-*/
 
 } // cuda
 } // potential

@@ -6,6 +6,7 @@ if (mdcraft_ENABLE_CUDA_VARIANT)
   )
 elseif(mdcraft_ENABLE_CUDA_CRTP)
   set(HEADERS
+      pair_crtp.h
       single_crtp.h
       multi_crtp.h
   )

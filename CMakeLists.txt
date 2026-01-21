@@ -42,9 +42,11 @@ endif ()
 
 if (mdcraft_ENABLE_CUDA)
   option(mdcraft_ENABLE_CUDA_VARIANT
-      "Use custom variant for CUDA device applications"    ON)
+	  "Use custom variant for CUDA device applications"     OFF)
   option(mdcraft_ENABLE_CUDA_CRTP
-      "Use CRTP pattern for CUDA device applications"     OFF)
+	  "Use CRTP pattern for CUDA device applications"        ON)
+  option(mdcraft_ENABLE_CUDA_THRUST
+      "Use thrust library for CUDA device applications"    ON)
 
   if (mdcraft_ENABLE_CUDA_VARIANT AND mdcraft_ENABLE_CUDA_CRTP)
     message(FATAL_ERROR "Choose only one option for build with CUDA")
@@ -68,6 +70,12 @@ if (mdcraft_ENABLE_CUDA)
   set(CMAKE_CUDA_FLAGS_RELEASE "-O3 --use_fast_math")
 
   message(STATUS "CUDA enabled. Architectures: ${CMAKE_CUDA_ARCHITECTURES}")
+
+  if (mdcraft_ENABLE_CUDA_THRUST)
+    find_package(Thrust REQUIRED)
+
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --extended-lambda")
+  endif()
 endif()
 
 find_package(Eigen3)
@@ -80,12 +88,12 @@ if(mdcraft_ENABLE_MLIP4)
   find_package(mlip4 REQUIRED)
 endif()
 
+add_subdirectory(mdcraft)
+
 if(mdcraft_ENABLE_PYTHON)
   find_package(pybind11 REQUIRED)
   add_subdirectory(python)
 endif()
-
-add_subdirectory(mdcraft)
 
 if(mdcraft_ENABLE_TESTS)
 add_subdirectory(test)

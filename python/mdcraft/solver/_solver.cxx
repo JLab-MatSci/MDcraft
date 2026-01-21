@@ -1,3 +1,5 @@
+#include <mdcraft/configuration.h>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 // #include <pybind11/stl.h>
@@ -178,61 +180,91 @@ py::class_<mdcraft::solver::cuda::Single>(m, "SingleCUDA")
 
 #elif defined(mdcraft_ENABLE_CUDA_CRTP)
 
-py::class_<SingleSolver>(m, "SingleSolverCUDA")
-// constructors:
-
-	// depending on the actual type of pot given,
-	// resolve the needed Single solver
+py::class_<PairSolverBase>(m, "PairSolverCUDA")
 	.def(py::init([] (
+		const std::string type,
 		cuLJs& pot
-	) {
-		return new SingleCUDA<cuLJs>();
+	) -> PairSolverBase* {
+		if      (type == "Single") return new SingleCUDA<cuLJs>(&pot);
+		else if (type == "Multi")  return new MultiCUDA<cuLJs>();
+		else throw std::runtime_error("Wrong Pair Solver type given!\n");
+		return nullptr;
 	}))
 	.def(py::init([] (
+		const std::string type,
 		cuEAM& pot
-	) {
-		return new SingleCUDA<cuEAM>();
+	) -> PairSolverBase* {
+		if      (type == "Single") return new SingleCUDA<cuEAM>(&pot);
+		else if (type == "Multi")  return new MultiCUDA<cuEAM>();
+		else throw std::runtime_error("Wrong Pair Solver type given!\n");
+		return nullptr;
 	}))
 
-// methods:
-	// .def("forces", &mdcraft::solver::cuda::Single::forces)
+	// .def("forces", [] (PairSolver<SingleCUDA<cuLJs>>& self, cuLJs& pot, Atoms& atoms, Atoms& neibs, NeibsList& nlist) {
+	// 	self.forces(atoms, neibs, nlist);
+	// })
+
+	.def("forces", [] (PairSolverBase& self, cuLJs& pot, Atoms& atoms, Atoms& neibs, NeibsList& nlist) {
+		std::cout << "LOOOOL" << std::endl;
+		static_cast< PairSolver<SingleCUDA<cuLJs>>& >(self).forces(atoms, atoms, nlist);
+	})
+	;
+
+// py::class_<SingleSolver /*PairSolver*/>(m, "SingleSolverCUDA")
+// // constructors:
+
+// 	// depending on the actual type of pot given,
+// 	// resolve the needed Single solver
+// 	.def(py::init([] (
+// 		cuLJs& pot
+// 	) {
+// 		return new SingleCUDA<cuLJs>();
+// 	}))
+// 	.def(py::init([] (
+// 		cuEAM& pot
+// 	) {
+// 		return new SingleCUDA<cuEAM>();
+// 	}))
+
+// // methods:
+// 	// .def("forces", &mdcraft::solver::cuda::Single::forces)
 	
-/*
-	.def("forces", [] (SingleCUDA<cuLJs>& self, Atoms& atoms, Atoms& neibs, NeibsList& nlist) {
-		self.forces(atoms, atoms, nlist);
-	})
-*/
-	.def("forces", [] (SingleSolver& self, cuLJs& pot, Atoms& atoms, Atoms& neibs, NeibsList& nlist) {
-		static_cast<SingleCUDA<cuLJs>&>(self).forces(atoms, atoms, nlist);
-	})
+// /*
+// 	.def("forces", [] (SingleCUDA<cuLJs>& self, Atoms& atoms, Atoms& neibs, NeibsList& nlist) {
+// 		self.forces(atoms, atoms, nlist);
+// 	})
+// */
+// 	.def("forces", [] (SingleSolver& self, cuLJs& pot, Atoms& atoms, Atoms& neibs, NeibsList& nlist) {
+// 		// static_cast<SingleCUDA<cuLJs>&>(self).forces(atoms, atoms, nlist);
+// 	})
 
-	.def("forces", [] (SingleSolver& self, cuEAM& pot, Atoms& atoms, Atoms& neibs, NeibsList& nlist) {
-		static_cast<SingleCUDA<cuEAM>&>(self).forces(atoms, atoms, nlist);
-	})
-	;
+// 	// .def("forces", [] (SingleSolver& self, cuEAM& pot, Atoms& atoms, Atoms& neibs, NeibsList& nlist) {
+// 	// 	static_cast<SingleCUDA<cuEAM>&>(self).forces(atoms, atoms, nlist);
+// 	// })
+// 	;
 
-py::class_<MultiSolver>(m, "MultiSolverCUDA")
-	// depending on the actual type of pot given,
-	// resolve the needed Multi solver
-	.def(py::init([] (
-		cuLJs& pot
-	) {
-		return new MultiCUDA<cuLJs>();
-	}))
-	;
+// py::class_<MultiSolver>(m, "MultiSolverCUDA")
+// 	// depending on the actual type of pot given,
+// 	// resolve the needed Multi solver
+// 	.def(py::init([] (
+// 		cuLJs& pot
+// 	) {
+// 		return new MultiCUDA<cuLJs>();
+// 	}))
+// 	;
 
-	// .def(py::init<
-	// 		Boundary&,
-	// 		Thermostat&
-	// 	>(), 
-	// 	py::arg("boundary")   = mdcraft::solver::boundary::dummy_boundary,
-	// 	py::arg("thermostat") = mdcraft::solver::thermostat::dummy_thermostat
-	// )
+// 	// .def(py::init<
+// 	// 		Boundary&,
+// 	// 		Thermostat&
+// 	// 	>(), 
+// 	// 	py::arg("boundary")   = mdcraft::solver::boundary::dummy_boundary,
+// 	// 	py::arg("thermostat") = mdcraft::solver::thermostat::dummy_thermostat
+// 	// )
 
-	// .def("forces", &mdcraft::solver::cuda::Single::forces)
-	;
+// 	// .def("forces", &mdcraft::solver::cuda::Single::forces)
+// 	;
 
-	;
+// 	;
 #endif
 
 }

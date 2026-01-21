@@ -1,4 +1,7 @@
-#pragma once 
+#pragma once
+
+#include <numeric>
+
 #include <mdcraft/neibs/grid.h>
 
 namespace mdcraft::neibs {
@@ -11,6 +14,51 @@ using List = std::vector<ListOne>;
 
 extern Atoms dummy_atoms;
 extern Atoms dummy_neibs;
+
+#ifdef mdcraft_ENABLE_CUDA_THRUST
+struct NeibsListOneDev
+{
+	point_id*    start;
+	std::size_t   size;
+
+	__host__ __device__ point_id operator[] (std::size_t i)
+	{
+		return start[i];
+	}
+};
+
+decltype(auto) inline create_nlist_device(
+	List::iterator first, List::iterator last, std::size_t total
+)
+{
+	std::array<thrust::device_vector<std::size_t>, 3> arr_dev_vecs;
+
+	auto n_atoms = last - first;
+
+	std::vector<std::size_t> flat, lens, offs;
+
+	flat.reserve(total);
+	lens.resize(n_atoms);
+	offs.resize(n_atoms);
+
+	for (auto it = first; it != last; ++it)
+	{
+		auto& v = *it;
+		std::copy(/*PAR*/ v.begin(), v.end(), std::back_inserter(flat));
+	}
+
+	std::transform(/*PAR*/ first, last, lens.begin(), [] (auto&& v) { return v.size(); });
+
+	offs[0] = 0;
+	std::inclusive_scan(/*PAR*/ lens.cbegin(), lens.cend(), offs.begin() + 1);
+
+	thrust::copy(flat.cbegin(), flat.cend(), arr_dev_vecs[0].begin());
+	thrust::copy(lens.cbegin(), lens.cend(), arr_dev_vecs[1].begin());
+	thrust::copy(offs.cbegin(), offs.cend(), arr_dev_vecs[2].begin());
+
+	return arr_dev_vecs;
+}
+#endif
 
 /** 
 	\brief 

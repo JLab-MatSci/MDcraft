@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pair.h"
+#include "pair_crtp.h"
 #include <mdcraft/solver/potential/cuda/base_potential.cuh>
 
 #include <mdcraft/solver/thermostat/base.h>
@@ -11,23 +11,22 @@ namespace mdcraft::solver::cuda {
 class Multi : public TPairSolver<Multi>
 {
 public:
-	Multi() {}
-	Multi(BasePotential& pot) {}
+	Multi() = default;
 };
 
 template <typename P>
 class TMulti : public Multi
 {
 public:
-	TMulti() {}
+	TMulti() = default;
 
-	void forces(Atoms& atoms, Atoms& neibs, NeibsList& nlist) /*const*/
+	__device__ void force_one_impl(
+		data::Atom&             atom,
+		data::Atom*             neibs,
+		neibs::NeibsListOneDev& nlist
+	)
 	{
-		potential_.force();
 	}
-
-private:
-	std::shared_ptr<Potential<P>> potential_;
 };
 
 } // namespace mdcraft::solver::cuda
