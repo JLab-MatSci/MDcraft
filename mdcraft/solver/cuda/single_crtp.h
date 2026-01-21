@@ -20,10 +20,6 @@ template <typename P>
 class TSingle : public Single
 {
 public:
-	// Single(
-	// 	Boundary&   boundary   = boundary::dummy_boundary,
-	// 	Thermostat& thermostat = thermostat::dummy_thermostat
-	// );
 	TSingle() {}
 
 	void forces(Atoms& atoms, Atoms& neibs, NeibsList& nlist) /*const*/
