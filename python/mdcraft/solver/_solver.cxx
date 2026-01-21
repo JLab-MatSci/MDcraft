@@ -205,66 +205,10 @@ py::class_<PairSolverBase>(m, "PairSolverCUDA")
 	// })
 
 	.def("forces", [] (PairSolverBase& self, cuLJs& pot, Atoms& atoms, Atoms& neibs, NeibsList& nlist) {
-		std::cout << "LOOOOL" << std::endl;
 		static_cast< PairSolver<SingleCUDA<cuLJs>>& >(self).forces(atoms, atoms, nlist);
 	})
 	;
 
-// py::class_<SingleSolver /*PairSolver*/>(m, "SingleSolverCUDA")
-// // constructors:
-
-// 	// depending on the actual type of pot given,
-// 	// resolve the needed Single solver
-// 	.def(py::init([] (
-// 		cuLJs& pot
-// 	) {
-// 		return new SingleCUDA<cuLJs>();
-// 	}))
-// 	.def(py::init([] (
-// 		cuEAM& pot
-// 	) {
-// 		return new SingleCUDA<cuEAM>();
-// 	}))
-
-// // methods:
-// 	// .def("forces", &mdcraft::solver::cuda::Single::forces)
-	
-// /*
-// 	.def("forces", [] (SingleCUDA<cuLJs>& self, Atoms& atoms, Atoms& neibs, NeibsList& nlist) {
-// 		self.forces(atoms, atoms, nlist);
-// 	})
-// */
-// 	.def("forces", [] (SingleSolver& self, cuLJs& pot, Atoms& atoms, Atoms& neibs, NeibsList& nlist) {
-// 		// static_cast<SingleCUDA<cuLJs>&>(self).forces(atoms, atoms, nlist);
-// 	})
-
-// 	// .def("forces", [] (SingleSolver& self, cuEAM& pot, Atoms& atoms, Atoms& neibs, NeibsList& nlist) {
-// 	// 	static_cast<SingleCUDA<cuEAM>&>(self).forces(atoms, atoms, nlist);
-// 	// })
-// 	;
-
-// py::class_<MultiSolver>(m, "MultiSolverCUDA")
-// 	// depending on the actual type of pot given,
-// 	// resolve the needed Multi solver
-// 	.def(py::init([] (
-// 		cuLJs& pot
-// 	) {
-// 		return new MultiCUDA<cuLJs>();
-// 	}))
-// 	;
-
-// 	// .def(py::init<
-// 	// 		Boundary&,
-// 	// 		Thermostat&
-// 	// 	>(), 
-// 	// 	py::arg("boundary")   = mdcraft::solver::boundary::dummy_boundary,
-// 	// 	py::arg("thermostat") = mdcraft::solver::thermostat::dummy_thermostat
-// 	// )
-
-// 	// .def("forces", &mdcraft::solver::cuda::Single::forces)
-// 	;
-
-// 	;
 #endif
 
 }
