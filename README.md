@@ -124,7 +124,7 @@ python3 --version
 
 ### Anaconda installation
 
-If it is impossible to install the interpreter using a package manager, it is recommended to use the Anaconda distribution \texttt{https://www.anaconda.com/products/individual}  Linux 64-Bit (x86) Installer. This package contains the Python interpreter and all necessary libraries.
+If it is impossible to install the interpreter using a package manager, it is recommended to use the Anaconda distribution https://www.anaconda.com/products/individual Linux 64-Bit (x86) Installer. This package contains the Python interpreter and all necessary libraries.
 
 ## pybind11 installation
 
