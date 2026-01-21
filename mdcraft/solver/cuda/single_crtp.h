@@ -13,13 +13,6 @@ public:
 
 	void forces_(Atoms& atoms, Atoms& neibs, NeibsList& nlist)
 	{
-		static int i = 0;
-		std::cout << ++i << std::endl;
-		// forces(atoms, neibs, nlist);
-		// using TPairSolver<Single>::forces;
-		/*TPairSolver<Single>::*/
-		// static_cast<> forces(atoms, neibs, nlist);
-		//forces(atoms, neibs, nlist);
 	}
 };
 
