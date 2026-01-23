@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mdcraft/solver/cuda/isolver.h>
+
 #ifdef mdcraft_ENABLE_CUDA_VARIANT
 	#include <mdcraft/solver/cuda/single_var.h>
 

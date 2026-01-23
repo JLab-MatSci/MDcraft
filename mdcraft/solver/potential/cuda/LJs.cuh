@@ -7,24 +7,13 @@ namespace solver {
 namespace potential {
 namespace cuda {
 
-// pair Lennard-Jones potential V(r)[kJ/mol]
-// X =  (r/rVr)^2 - X2min
-// V(r) = 4* aVr * ( [rVr/r]^12 - [rVr/r]^6 + [aLJ3 + bLJ2*X]* X*X )
 
 class cuLJs : public TBasePotential<cuLJs> {
 public:
-	cuLJs() {}
-
-	// cuLJs(
-	// 	double aVr,
-	// 	double rVr,
-	// 	double Rcutoff
-	// );
-
 #ifdef mdcraft_ENABLE_CUDA_THRUST
 	__device__ void force_impl(
 		data::Atom&             atom,
-		data::Atom*             neibs, 
+		data::Atom*             neibs,
 		neibs::NeibsListOneDev& nlist
 	) /*const*/
 	{
@@ -64,13 +53,52 @@ public:
 		return Tag::cuLJs;
 	}
 
+	double get_a() const
+	{
+		return a_;
+	}
+
+	void set_a(double a)
+	{
+		a_ = a;
+		update_dev();
+	}
+
+	double get_sigma() const
+	{
+		return sigma_;
+	}
+
+	void set_sigma(double sigma)
+	{
+		sigma_ = sigma;
+		update_dev();
+	}
+
+	double get_rcut() const
+	{
+		return rcut_;
+	}
+
+	void set_rcut(double rcut)
+	{
+		rcut_ = rcut;
+		update_dev();
+	}
+
+protected:
+	cuLJs(double a, double sigma, double rcut)
+	  : a_(a)
+	  , sigma_(sigma)
+	  , rcut_(rcut)
+	{}
+
+	friend class TBasePotential<cuLJs>;
+
 private:
-	
-	double aVr, aVr2, rVr, rVr1, rVr2;
-	double aLJ, aLJ3, bLJ, bLJ2;
+	double a_, sigma_, rcut_;
 
-	const double X2min = 1.2599210498948732;
-
+	const double X2min_ = 1.2599210498948732;
 };
 
 } // cuda

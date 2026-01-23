@@ -42,11 +42,11 @@ endif ()
 
 if (mdcraft_ENABLE_CUDA)
   option(mdcraft_ENABLE_CUDA_VARIANT
-	  "Use custom variant for CUDA device applications"     OFF)
+      "Use custom variant for CUDA device applications"     OFF)
   option(mdcraft_ENABLE_CUDA_CRTP
-	  "Use CRTP pattern for CUDA device applications"        ON)
+      "Use CRTP pattern for CUDA device applications"        ON)
   option(mdcraft_ENABLE_CUDA_THRUST
-      "Use thrust library for CUDA device applications"    ON)
+      "Use thrust library for CUDA device applications"      ON)
 
   if (mdcraft_ENABLE_CUDA_VARIANT AND mdcraft_ENABLE_CUDA_CRTP)
     message(FATAL_ERROR "Choose only one option for build with CUDA")

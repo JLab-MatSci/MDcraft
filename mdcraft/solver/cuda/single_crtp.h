@@ -14,18 +14,12 @@ public:
 	// for now ctor copies potential from host to device
 	// it is strange, as only potential itself must be
 	// responsible for its resource management
-	TSingle(Potential<P>* p)
+	TSingle(P* p)
 	{
-		static_assert(std::is_trivially_copyable_v<std::remove_reference_t<P>>);
-		cudaMalloc(&potential_dev_, sizeof(P));
-		cudaMemcpy(potential_dev_, p, sizeof(P), cudaMemcpyHostToDevice);
+		P* p_dev = p->ptr_dev();
+		CUDA_ASSERT_POINTER_ON_DEVICE(p_dev);
+		potential_dev_ = p_dev;
 	}
-
-	// NO DTOR TO FREE MEMORY. ELSE WE LOOSE TRIVIALLY COPYABLE CLASS
-	/*~TSingle()
-	{
-		cudaFree(potential_dev_);
-	}*/
 
 #ifdef mdcraft_ENABLE_CUDA_THRUST
 	__device__ void force_one(
@@ -34,12 +28,12 @@ public:
 		neibs::NeibsListOneDev& nlist
 	)
 	{
-		potential_dev_->force(atom, neibs, nlist);
+		potential_dev_->force_impl(atom, neibs, nlist);
 	}
 #endif
 
 private:
-	Potential<P>* potential_dev_;
+	P* potential_dev_ = nullptr;
 
 };
 

@@ -231,8 +231,19 @@ py::class_<BasePotential>(m, "PotentialCUDA")
 	)
 	;
 
-py::class_<cuLJs, BasePotential>(m, "cuLJs")
-	.def(py::init<>())
+py::class_<cuLJs, BasePotential, TBasePotential<cuLJs>::PtrHolder>(m, "cuLJs")
+	.def(py::init([] (double a, double sigma, double rcut)
+	{
+		auto pot = TBasePotential<cuLJs>::create(a, sigma, rcut);
+		return pot;
+    }),
+		py::arg("a"),
+		py::arg("sigma"),
+		py::arg("rcut")
+	)
+	.def_property("a", &cuLJs::get_a, &cuLJs::set_a)
+	.def_property("rcut", &cuLJs::get_rcut, &cuLJs::set_rcut)
+	.def_property("sigma", &cuLJs::get_sigma, &cuLJs::set_sigma)
 	;
 
 py::class_<cuEAM, BasePotential>(m, "cuEAM")

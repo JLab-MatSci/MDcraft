@@ -1,3 +1,5 @@
+#pragma once
+
 #include <mdcraft/configuration.h>
 
 #include <mdcraft/data/atom.h>
@@ -14,6 +16,14 @@ using NeibsList = neibs::List;
 using NeibsListOne = ::mdcraft::neibs::ListOne;
 
 using BasePotential = mdcraft::solver::potential::cuda::BasePotential;
+
+template <typename P>
+void inline CUDA_ASSERT_POINTER_ON_DEVICE(P* p)
+{
+	cudaPointerAttributes attr;
+	cudaError_t err = cudaPointerGetAttributes(&attr, p);
+	if (attr.type != cudaMemoryTypeDevice) assert(false);
+}
 
 class BaseSolver
 {

@@ -205,6 +205,7 @@ py::class_<PairSolverBase>(m, "PairSolverCUDA")
 	// })
 
 	.def("forces", [] (PairSolverBase& self, cuLJs& pot, Atoms& atoms, Atoms& neibs, NeibsList& nlist) {
+		mdcraft::solver::cuda::CUDA_ASSERT_POINTER_ON_DEVICE(pot.ptr_dev());
 		static_cast< PairSolver<SingleCUDA<cuLJs>>& >(self).forces(atoms, atoms, nlist);
 	})
 	;

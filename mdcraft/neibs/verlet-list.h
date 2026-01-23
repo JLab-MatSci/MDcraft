@@ -27,7 +27,7 @@ struct NeibsListOneDev
 	}
 };
 
-decltype(auto) inline create_nlist_device(
+auto inline create_nlist_device(
 	List::iterator first, List::iterator last, std::size_t total
 )
 {
@@ -52,9 +52,13 @@ decltype(auto) inline create_nlist_device(
 	offs[0] = 0;
 	std::inclusive_scan(/*PAR*/ lens.cbegin(), lens.cend(), offs.begin() + 1);
 
-	thrust::copy(flat.cbegin(), flat.cend(), arr_dev_vecs[0].begin());
-	thrust::copy(lens.cbegin(), lens.cend(), arr_dev_vecs[1].begin());
-	thrust::copy(offs.cbegin(), offs.cend(), arr_dev_vecs[2].begin());
+	thrust::device_vector<std::size_t> flat_dev(flat.cbegin(), flat.cend());
+	thrust::device_vector<std::size_t> lens_dev(lens.cbegin(), lens.cend());
+	thrust::device_vector<std::size_t> offs_dev(offs.cbegin(), offs.cend());
+
+	arr_dev_vecs[0] = std::move(flat_dev);
+	arr_dev_vecs[1] = std::move(lens_dev);
+	arr_dev_vecs[2] = std::move(offs_dev);
 
 	return arr_dev_vecs;
 }
