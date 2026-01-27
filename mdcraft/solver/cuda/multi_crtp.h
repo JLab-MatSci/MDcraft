@@ -8,16 +8,12 @@
 
 namespace mdcraft::solver::cuda {
 
-class Multi : public TPairSolver<Multi>
-{
-public:
-	Multi() = default;
-};
-
 template <typename P>
-class TMulti : public Multi
+class TMulti : public TPairSolver<TMulti<P>, P>
 {
 public:
+	using potential_t = P;
+
 	TMulti() = default;
 
 	__device__ void force_one_impl(
@@ -26,6 +22,14 @@ public:
 		neibs::NeibsListOneDev& nlist
 	)
 	{
+	}
+
+	// TEMPORALLY !!! Will be changed to some sort of array of ptrs.
+	// IT COMPILES! EVEN THOUNGH THIS ONE RETURNS int, AND 
+	// THE ONE IN TSingle RETURNS potential_t*
+	__host__ __device__ int potential_impl() /*const*/
+	{
+		return 0;
 	}
 };
 

@@ -189,7 +189,10 @@ py::class_<PairSolverBase>(m, "PairSolverCUDA")
 		else if (type == "Multi")  return new MultiCUDA<cuLJs>();
 		else throw std::runtime_error("Wrong Pair Solver type given!\n");
 		return nullptr;
-	}))
+	}),
+		py::arg("type"),
+		py::arg("potential") 
+	)
 	.def(py::init([] (
 		const std::string type,
 		cuEAM& pot
@@ -206,7 +209,7 @@ py::class_<PairSolverBase>(m, "PairSolverCUDA")
 
 	.def("forces", [] (PairSolverBase& self, cuLJs& pot, Atoms& atoms, Atoms& neibs, NeibsList& nlist) {
 		mdcraft::solver::cuda::CUDA_ASSERT_POINTER_ON_DEVICE(pot.ptr_dev());
-		static_cast< PairSolver<SingleCUDA<cuLJs>>& >(self).forces(atoms, atoms, nlist);
+		static_cast< PairSolver<SingleCUDA<cuLJs>, cuLJs>& >(self).forces(atoms, atoms, nlist);
 	})
 	;
 

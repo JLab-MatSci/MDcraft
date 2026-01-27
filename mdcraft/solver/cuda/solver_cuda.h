@@ -20,10 +20,9 @@ namespace {
 // solvers
 	using BaseSolver = mdcraft::solver::cuda::BaseSolver;
 	using PairSolverBase = mdcraft::solver::cuda::PairSolver;
-	using MultiSolver  = mdcraft::solver::cuda::Multi;
 
-	template <typename S>
-	using PairSolver = mdcraft::solver::cuda::TPairSolver<S>;
+	template <typename S, typename P>
+	using PairSolver = mdcraft::solver::cuda::TPairSolver<S, P>;
 
 	template <typename P>
 	using SingleCUDA = mdcraft::solver::cuda::TSingle<P>;

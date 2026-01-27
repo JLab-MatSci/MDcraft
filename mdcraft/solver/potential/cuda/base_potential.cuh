@@ -31,6 +31,15 @@ public:
 	}
 };
 
+struct dr
+{
+	static __host__ __device__
+	vector from_to(const data::Atom& begin, const data::Atom& end)
+	{
+		return end.r - begin.r;
+	}
+};
+
 template <typename P>
 class TBasePotential : public BasePotential
 {

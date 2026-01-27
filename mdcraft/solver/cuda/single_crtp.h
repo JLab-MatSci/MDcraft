@@ -6,17 +6,19 @@
 namespace mdcraft::solver::cuda {
 
 template <typename P>
-class TSingle : public TPairSolver<TSingle<P>>
+class TSingle : public TPairSolver<TSingle<P>, P>
 {
 public:
+	using potential_t = P;
+
 	TSingle() = default;
 
 	// for now ctor copies potential from host to device
 	// it is strange, as only potential itself must be
 	// responsible for its resource management
-	TSingle(P* p)
+	TSingle(potential_t* p)
 	{
-		P* p_dev = p->ptr_dev();
+		potential_t* p_dev = p->ptr_dev();
 		CUDA_ASSERT_POINTER_ON_DEVICE(p_dev);
 		potential_dev_ = p_dev;
 	}
@@ -32,8 +34,13 @@ public:
 	}
 #endif
 
+	__host__ __device__ const potential_t* potential_impl() /*const*/
+	{
+		return potential_dev_;
+	}
+
 private:
-	P* potential_dev_ = nullptr;
+	potential_t* potential_dev_ = nullptr;
 
 };
 

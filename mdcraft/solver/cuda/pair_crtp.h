@@ -13,17 +13,15 @@ class PairSolver : public TBaseSolver<PairSolver>
 {
 public:
 	PairSolver() = default;
-
-	void prepare(Atoms& atoms, Atoms& neibs, NeibsList& nlist) /*const*/
-	{
-
-	}
 };
 
-template <typename S>
+template <typename S, typename P>
 class TPairSolver : public PairSolver
 {
 public:
+	using solver_t    = S;
+	using potential_t = P;
+
 	TPairSolver() = default;
 
 #ifdef mdcraft_ENABLE_CUDA_THRUST
@@ -41,14 +39,13 @@ public:
 			thrust::make_tuple(thrust::counting_iterator<std::size_t>(n_atoms), atoms_dev.end())
 		);
 
-		// dispatch the correct solver version
-		S* solver = static_cast<S*>(this);
-		static_assert(std::is_trivially_copyable_v<std::remove_reference_t<S>>);
-		static_assert(std::is_standard_layout_v<std::remove_reference_t<S>>);
+		solver_t* solver = static_cast<solver_t*>(this);
+		static_assert(std::is_trivially_copyable_v<std::remove_reference_t<solver_t>>);
+		static_assert(std::is_standard_layout_v<std::remove_reference_t<solver_t>>);
 
 		// convert into pointer accessible on device
-		thrust::device_vector<S> v_solver_dev(1, *solver);
-		S* p_solver_dev = thrust::raw_pointer_cast(v_solver_dev.data());
+		thrust::device_vector<solver_t> v_solver_dev(1, *solver);
+		solver_t* p_solver_dev = thrust::raw_pointer_cast(v_solver_dev.data());
 
 		// get raw data under device Atoms verion
 		data::Atom* p_atoms_dev = thrust::raw_pointer_cast(atoms_dev.data());
@@ -90,6 +87,46 @@ public:
 	}
 #endif
 
+	void prepare(Atoms& atoms, Atoms& neibs, NeibsList& nlist) /*const*/
+	{
+		// convert to AtomsDev structure
+		AtomsDev atoms_dev(atoms.begin(), atoms.end());
+
+		solver_t* solver = static_cast<solver_t*>(this);
+		static_assert(std::is_trivially_copyable_v<std::remove_reference_t<solver_t>>);
+		static_assert(std::is_standard_layout_v<std::remove_reference_t<solver_t>>);
+
+		// convert into pointer accessible on device
+		thrust::device_vector<solver_t> v_solver_dev(1, *solver);
+		solver_t* p_solver_dev = thrust::raw_pointer_cast(v_solver_dev.data());
+
+		thrust::for_each(atoms_dev.begin(), atoms_dev.end(), [p_solver_dev] __device__ (auto&& atom)
+		{
+			atom.f  = Eigen::Matrix<double, 3, 1>::Zero();
+			atom.V  = Eigen::Matrix<double, 3, 3>::Zero();
+			atom.Ep = 0.0;
+
+			// for EAM type
+			atom.Em = 0.0;
+			atom.nc = 0.0;
+
+			// written assuming Single solver just for now
+			// atom.rcut = potential()->get_rcut();
+			atom.rcut = p_solver_dev->potential_impl()->get_rcut();
+
+			atom.bc = 0x0;
+			//boundary.prepare_one(atomit, neibs, nlist[i]);
+		});
+
+		// convert back to Atoms structure
+		thrust::copy(atoms_dev.begin(), atoms_dev.end(), atoms.begin());
+	}
+
+	__host__ __device__ decltype(auto) potential() /*const*/
+	{
+		return static_cast<solver_t*>(this)->potential_impl();
+	}
 };
 
 } // namespace mdcraft::solver::cuda
+

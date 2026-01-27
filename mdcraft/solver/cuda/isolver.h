@@ -37,11 +37,6 @@ class TBaseSolver : public BaseSolver
 {
 public:
 	TBaseSolver() = default;
-
-	void prepare(Atoms& atoms, Atoms& neibs, NeibsList& nlist) /*const*/
-	{
-		static_cast<S*>(this)->prepare(atoms, neibs, nlist);
-	}
 };
 
 } // namespace mdcraft::solver::cuda
