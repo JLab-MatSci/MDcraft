@@ -25,6 +25,16 @@ void inline CUDA_ASSERT_POINTER_ON_DEVICE(P* p)
 	if (attr.type != cudaMemoryTypeDevice) assert(false);
 }
 
+#ifdef mdcraft_ENABLE_CUDA_THRUST
+#define DISPATCH_SOLVER_FOR_CUDA(T, device_ptr)                  \
+	T* obj = static_cast<T*>(this);                              \
+                                                                 \
+	/* convert into pointer accessible on device */              \
+	thrust::device_vector<T> v_obj_dev(1, *obj);                 \
+	T* device_ptr = thrust::raw_pointer_cast(v_obj_dev.data());  \
+	CUDA_ASSERT_POINTER_ON_DEVICE(device_ptr);
+#endif
+
 class BaseSolver
 {
 public:

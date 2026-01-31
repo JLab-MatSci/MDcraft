@@ -17,13 +17,14 @@ public:
 		neibs::NeibsListOneDev& nlist
 	) /*const*/
 	{
-		for (auto i = 0; i < nlist.size; ++i) 
+		for (auto i = 0; i < nlist.size; ++i)
 		{
 			const auto& j = nlist[i];
 			auto& neib = neibs[j];
 
 			auto r_ij = dr::from_to(atom, neib);
 			double const r2_ij = r_ij.squaredNorm();
+
 			if (r2_ij < 1e-15) continue;
 
 			if (r2_ij < rcut2_)
@@ -41,7 +42,7 @@ public:
 		return Tag::cuLJs;
 	}
 
-	double get_a() const
+	__host__ __device__ double get_a() const
 	{
 		return a_;
 	}
@@ -52,7 +53,7 @@ public:
 		update_dev();
 	}
 
-	double get_sigma() const
+	__host__ __device__ double get_sigma() const
 	{
 		return sigma_;
 	}
@@ -67,7 +68,7 @@ public:
 		update_dev();
 	}
 
-	double get_rcut() const
+	__host__ __device__ double get_rcut() const
 	{
 		return rcut_;
 	}
@@ -123,7 +124,7 @@ private:
 		auto sr6 = sr2*sr2*sr2;
 		auto sr12 = sr6*sr6;
 		auto X  = X_V(r*r);
-		return 4.*a_ * (sr12 - sr6 + (b_ + c_*X)*X*X);
+		return 4.*a_ * (sr12 - sr6 + (b_ + c_*X)*X*X);  // ??? divide by two
 	}
 
 	__host__ __device__ constexpr double dV_dr(double r2)
@@ -134,16 +135,21 @@ private:
 		auto r14 = r6*r8;
 		auto X   = X_V(r2);
 		return 4.*a_ * ( -12.*s12_/r14 + 6.*s6_/r8
-					     + 2. * (2.*b_ + 3.*c_) * X / s2_);
+					     + 2. * (2.*b_ + 3.*c_*X) * X / s2_);
 	}
 
 	void update_coeffs_V()
 	{
+		s2_    = sigma_*sigma_;
+		s6_    = s2_*s2_*s2_;
+		s12_   = s6_*s6_;
+
 		Xc_ = X_V(rcut2_);
 		auto sr6c = sr6_V(rcut_);
-		auto D = (sr6c - 0.5) * Xc_ * sr2_V(rcut_);
-		b_ =  3 * (sr6c - 1. + 2.*D) * sr6c / (Xc_*Xc_);
-		c_ = -2 * (sr6c - 1. + 3.*D) * sr6c / (Xc_*Xc_*Xc_);
+		auto D = (sr6c - 0.5) * Xc_ * s2_ / rcut2_;
+
+		b_ = -3*(sr6c - 1. + 2.*D) * sr6c / (Xc_*Xc_);
+		c_ =  2*(sr6c - 1. + 3.*D) * sr6c / (Xc_*Xc_*Xc_);
 	}
 
 private:
@@ -160,4 +166,3 @@ private:
 } // potential
 } // solver
 } // mdcraft
-

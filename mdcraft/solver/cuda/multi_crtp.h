@@ -27,10 +27,10 @@ public:
 	// TEMPORALLY !!! Will be changed to some sort of array of ptrs.
 	// IT COMPILES! EVEN THOUNGH THIS ONE RETURNS int, AND 
 	// THE ONE IN TSingle RETURNS potential_t*
-	__host__ __device__ int potential_impl() /*const*/
-	{
-		return 0;
-	}
+	// __host__ __device__ int potential_impl() /*const*/
+	// {
+	// 	return 0;
+	// }
 };
 
 } // namespace mdcraft::solver::cuda

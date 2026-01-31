@@ -27,6 +27,10 @@ public:
 #ifdef mdcraft_ENABLE_CUDA_THRUST
 	void forces(Atoms& atoms, Atoms& neibs, NeibsList& nlist) /*const*/
 	{
+		static_assert(std::is_base_of_v<TPairSolver<solver_t, potential_t>, solver_t>);
+		static_assert(std::is_trivially_copyable_v<std::remove_reference_t<solver_t>>);
+		static_assert(std::is_standard_layout_v<std::remove_reference_t<solver_t>>);
+
 		auto n_atoms = atoms.size();
 
 		// convert to AtomsDev structure
@@ -39,13 +43,7 @@ public:
 			thrust::make_tuple(thrust::counting_iterator<std::size_t>(n_atoms), atoms_dev.end())
 		);
 
-		solver_t* solver = static_cast<solver_t*>(this);
-		static_assert(std::is_trivially_copyable_v<std::remove_reference_t<solver_t>>);
-		static_assert(std::is_standard_layout_v<std::remove_reference_t<solver_t>>);
-
-		// convert into pointer accessible on device
-		thrust::device_vector<solver_t> v_solver_dev(1, *solver);
-		solver_t* p_solver_dev = thrust::raw_pointer_cast(v_solver_dev.data());
+		DISPATCH_SOLVER_FOR_CUDA(solver_t, p_solver_dev);
 
 		// get raw data under device Atoms verion
 		data::Atom* p_atoms_dev = thrust::raw_pointer_cast(atoms_dev.data());
@@ -85,20 +83,13 @@ public:
 		// convert back to Atoms structure
 		thrust::copy(atoms_dev.begin(), atoms_dev.end(), atoms.begin());
 	}
-#endif
 
 	void prepare(Atoms& atoms, Atoms& neibs, NeibsList& nlist) /*const*/
 	{
 		// convert to AtomsDev structure
 		AtomsDev atoms_dev(atoms.begin(), atoms.end());
 
-		solver_t* solver = static_cast<solver_t*>(this);
-		static_assert(std::is_trivially_copyable_v<std::remove_reference_t<solver_t>>);
-		static_assert(std::is_standard_layout_v<std::remove_reference_t<solver_t>>);
-
-		// convert into pointer accessible on device
-		thrust::device_vector<solver_t> v_solver_dev(1, *solver);
-		solver_t* p_solver_dev = thrust::raw_pointer_cast(v_solver_dev.data());
+		DISPATCH_SOLVER_FOR_CUDA(solver_t, p_solver_dev);
 
 		thrust::for_each(atoms_dev.begin(), atoms_dev.end(), [p_solver_dev] __device__ (auto&& atom)
 		{
@@ -115,12 +106,13 @@ public:
 			atom.rcut = p_solver_dev->potential_impl()->get_rcut();
 
 			atom.bc = 0x0;
-			//boundary.prepare_one(atomit, neibs, nlist[i]);
+			// boundary.prepare_one(atomit, neibs, nlist[i]);
 		});
 
 		// convert back to Atoms structure
 		thrust::copy(atoms_dev.begin(), atoms_dev.end(), atoms.begin());
 	}
+#endif
 
 	__host__ __device__ decltype(auto) potential() /*const*/
 	{
@@ -129,4 +121,3 @@ public:
 };
 
 } // namespace mdcraft::solver::cuda
-

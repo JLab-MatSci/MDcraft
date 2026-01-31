@@ -49,6 +49,7 @@ void VerletList::fetch_data(
 void VerletList::optimize_search_radius(double kbuf) {
 	auto optimize_one = [&](Atoms::iterator p) {
 		auto& atom = *p;
+		assert(atom.rcut > 0);
 		auto iatom = p - m_atoms->begin();
 		auto& neibs = *m_neibs;
 		double hmax = 0.0;

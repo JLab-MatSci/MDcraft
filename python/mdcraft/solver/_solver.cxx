@@ -203,6 +203,11 @@ py::class_<PairSolverBase>(m, "PairSolverCUDA")
 		return nullptr;
 	}))
 
+	.def("prepare", [] (PairSolverBase& self, cuLJs& pot, Atoms& atoms, Atoms& neibs, NeibsList& nlist) {
+		mdcraft::solver::cuda::CUDA_ASSERT_POINTER_ON_DEVICE(pot.ptr_dev());
+		static_cast< PairSolver<SingleCUDA<cuLJs>, cuLJs>& >(self).prepare(atoms, atoms, nlist);
+	})
+
 	// .def("forces", [] (PairSolver<SingleCUDA<cuLJs>>& self, cuLJs& pot, Atoms& atoms, Atoms& neibs, NeibsList& nlist) {
 	// 	self.forces(atoms, neibs, nlist);
 	// })

@@ -233,5 +233,4 @@ py::class_<Atoms>(m, "Atoms", py::buffer_protocol(),
         )"
     )
     ;
-
 }
