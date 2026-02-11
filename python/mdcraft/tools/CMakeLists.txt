@@ -15,8 +15,12 @@ set_target_properties(_${PROJECT_NAME}_${LIB}
                    SUFFIX "${PYTHON_MODULE_EXTENSION}"
 )
 install(TARGETS _${PROJECT_NAME}_${LIB}
-        DESTINATION python/${PROJECT_NAME}/${LIB}
+        DESTINATION ${mdcraft_PYTHON_PACKAGE_DIR}/${LIB}
+        COMPONENT python
+        EXCLUDE_FROM_ALL
 )
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/__init__.py
-        DESTINATION python/${PROJECT_NAME}/${LIB}
+        DESTINATION ${mdcraft_PYTHON_PACKAGE_DIR}/${LIB}
+        COMPONENT python
+        EXCLUDE_FROM_ALL
 )

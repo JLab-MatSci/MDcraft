@@ -10,8 +10,12 @@ set_target_properties(_${PROJECT_NAME}_${LIB}_${SUBLIB}
                    SUFFIX "${PYTHON_MODULE_EXTENSION}"
 )
 install(TARGETS _${PROJECT_NAME}_${LIB}_${SUBLIB}
-        DESTINATION python/${PROJECT_NAME}/${LIB}/${SUBLIB}
+        DESTINATION ${mdcraft_PYTHON_PACKAGE_DIR}/${LIB}/${SUBLIB}
+        COMPONENT python
+        EXCLUDE_FROM_ALL
 )
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/__init__.py
-        DESTINATION python/${PROJECT_NAME}/${LIB}/${SUBLIB}
+        DESTINATION ${mdcraft_PYTHON_PACKAGE_DIR}/${LIB}/${SUBLIB}
+        COMPONENT python
+        EXCLUDE_FROM_ALL
 )
