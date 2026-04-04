@@ -1,0 +1,164 @@
+{
+  "version": 5,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 18,
+    "patch": 1
+  },
+  "configurePresets": [
+    {
+      "name": "linux-base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "environment": {
+        "CFLAGS": "",
+        "CXXFLAGS": "",
+        "CPPFLAGS": "",
+        "LDFLAGS": "",
+        "DEBUG_CFLAGS": "",
+        "DEBUG_CXXFLAGS": "",
+        "DEBUG_CPPFLAGS": "",
+        "CMAKE_PREFIX_PATH": "",
+        "PKG_CONFIG_PATH": "",
+        "PYTHONPATH": "",
+        "LD_LIBRARY_PATH": "",
+        "CONDA_PREFIX": "",
+        "CONDA_DEFAULT_ENV": "",
+        "CONDA_PROMPT_MODIFIER": "",
+        "CONDA_SHLVL": "0",
+        "CONDA_PYTHON_EXE": "",
+        "CONDA_BUILD_SYSROOT": "",
+        "_CONDA_PYTHON_SYSCONFIGDATA_NAME": ""
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "/usr/bin/cc",
+        "CMAKE_CXX_COMPILER": "/usr/bin/c++",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/.local",
+        "MPIEXEC_EXECUTABLE": "/usr/bin/mpirun",
+        "MPI_CXX_COMPILER": "/usr/bin/mpicxx",
+        "MPI_C_COMPILER": "/usr/bin/mpicc",
+        "mdcraft_ENABLE_MPI": "ON",
+        "mdcraft_ENABLE_PROBLEMS": "ON",
+        "mdcraft_ENABLE_PYTHON": "ON",
+        "mdcraft_ENABLE_TESTS": "ON",
+        "mdcraft_FETCH_MISSING_DEPS": "ON"
+      }
+    },
+    {
+      "name": "linux-debug",
+      "inherits": "linux-base",
+      "binaryDir": "${sourceDir}/build/linux-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "linux-release",
+      "inherits": "linux-base",
+      "binaryDir": "${sourceDir}/build/linux-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "linux-mpi-debug",
+      "inherits": "linux-debug",
+      "environment": {
+        "CFLAGS": "",
+        "CXXFLAGS": "",
+        "CPPFLAGS": "",
+        "LDFLAGS": "",
+        "DEBUG_CFLAGS": "",
+        "DEBUG_CXXFLAGS": "",
+        "DEBUG_CPPFLAGS": "",
+        "CMAKE_PREFIX_PATH": "",
+        "PKG_CONFIG_PATH": "",
+        "PYTHONPATH": "",
+        "CONDA_PREFIX": "",
+        "CONDA_DEFAULT_ENV": "",
+        "CONDA_PROMPT_MODIFIER": "",
+        "CONDA_SHLVL": "0",
+        "CONDA_PYTHON_EXE": "",
+        "CONDA_BUILD_SYSROOT": "",
+        "_CONDA_PYTHON_SYSCONFIGDATA_NAME": ""
+      },
+      "cacheVariables": {
+        "MPIEXEC_EXECUTABLE": "/usr/bin/mpirun",
+        "MPI_CXX_COMPILER": "/usr/bin/mpicxx",
+        "MPI_C_COMPILER": "/usr/bin/mpicc",
+        "mdcraft_ENABLE_MPI": "ON"
+      }
+    },
+    {
+      "name": "linux-mpi-release",
+      "inherits": "linux-release",
+      "environment": {
+        "CFLAGS": "",
+        "CXXFLAGS": "",
+        "CPPFLAGS": "",
+        "LDFLAGS": "",
+        "DEBUG_CFLAGS": "",
+        "DEBUG_CXXFLAGS": "",
+        "DEBUG_CPPFLAGS": "",
+        "CMAKE_PREFIX_PATH": "",
+        "PKG_CONFIG_PATH": "",
+        "PYTHONPATH": "",
+        "CONDA_PREFIX": "",
+        "CONDA_DEFAULT_ENV": "",
+        "CONDA_PROMPT_MODIFIER": "",
+        "CONDA_SHLVL": "0",
+        "CONDA_PYTHON_EXE": "",
+        "CONDA_BUILD_SYSROOT": "",
+        "_CONDA_PYTHON_SYSCONFIGDATA_NAME": ""
+      },
+      "cacheVariables": {
+        "MPIEXEC_EXECUTABLE": "/usr/bin/mpirun",
+        "MPI_CXX_COMPILER": "/usr/bin/mpicxx",
+        "MPI_C_COMPILER": "/usr/bin/mpicc",
+        "mdcraft_ENABLE_MPI": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "linux-debug",
+      "configurePreset": "linux-debug"
+    },
+    {
+      "name": "linux-release",
+      "configurePreset": "linux-release"
+    },
+    {
+      "name": "linux-mpi-debug",
+      "configurePreset": "linux-mpi-debug"
+    },
+    {
+      "name": "linux-mpi-release",
+      "configurePreset": "linux-mpi-release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "linux-debug",
+      "configurePreset": "linux-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "linux-mpi-debug",
+      "configurePreset": "linux-mpi-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "linux-mpi-release",
+      "configurePreset": "linux-mpi-release",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

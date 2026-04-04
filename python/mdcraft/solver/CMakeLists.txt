@@ -5,16 +5,8 @@ target_link_libraries(
         PRIVATE pybind11::module
         PUBLIC  ${PROJECT_NAME}-${LIB}
 )
-set_target_properties(_${PROJECT_NAME}_${LIB} 
-        PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
-                   SUFFIX "${PYTHON_MODULE_EXTENSION}"
-)
-install(TARGETS _${PROJECT_NAME}_${LIB}
-        DESTINATION python/${PROJECT_NAME}/${LIB}
-)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/__init__.py
-        DESTINATION python/${PROJECT_NAME}/${LIB}
-)
+mdcraft_configure_python_extension(_${PROJECT_NAME}_${LIB} "${LIB}")
+mdcraft_install_python_file(${CMAKE_CURRENT_SOURCE_DIR}/__init__.py "${LIB}")
 
 add_subdirectory(boundary)
 add_subdirectory(potential)

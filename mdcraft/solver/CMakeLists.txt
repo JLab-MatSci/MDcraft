@@ -42,6 +42,4 @@ target_link_libraries(${PROJECT_NAME}-${LIB}
 )
 endif()
 
-install(TARGETS ${PROJECT_NAME}-${LIB}
-    DESTINATION lib
-)
+mdcraft_install_runtime_library(${PROJECT_NAME}-${LIB})

@@ -1,6 +1,8 @@
-find_package(Python 3 COMPONENTS Interpreter) # Or Python 2 if needed
+if(NOT Python_EXECUTABLE)
+    find_package(Python 3 REQUIRED COMPONENTS Interpreter)
+endif()
 
-if(Python_FOUND)
+if(Python_EXECUTABLE)
     execute_process(COMMAND "${Python_EXECUTABLE}" -c "import mpi4py; print(mpi4py.__path__[0])"
                     OUTPUT_VARIABLE MPI4PY_PATH
                     OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -14,9 +16,18 @@ if(Python_FOUND)
         # set(MPI4PY_LIBRARIES ${MPI_LIBRARIES})
     else()
         set(MPI4PY_FOUND FALSE CACHE BOOL "Whether mpi4py was found")
+        if(MPI4PY_FIND_REQUIRED)
+            message(FATAL_ERROR
+                "mpi4py was not found for Python interpreter '${Python_EXECUTABLE}'. "
+                "For the automated Linux flow use ENABLE_MPI=ON ./scripts/bootstrap_linux.sh, "
+                "or install it manually with ${Python_EXECUTABLE} -m pip install mpi4py.")
+        endif()
     endif()
 else()
     set(MPI4PY_FOUND FALSE CACHE BOOL "Whether mpi4py was found")
+    if(MPI4PY_FIND_REQUIRED)
+        message(FATAL_ERROR "Python interpreter was not resolved before searching for mpi4py.")
+    endif()
 endif()
 
 mark_as_advanced(MPI4PY_INCLUDE_DIR)

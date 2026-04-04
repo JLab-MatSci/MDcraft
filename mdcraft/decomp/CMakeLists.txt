@@ -14,10 +14,7 @@ target_link_libraries(${LIB} PUBLIC
     MPI::MPI_C MPI::MPI_CXX
 )
 
-install(TARGETS ${LIB}
-    DESTINATION lib
-         EXPORT ${CMAKE_PROJECT_NAME}-targets
-)
+mdcraft_install_runtime_library(${LIB})
 file(GLOB HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 install(FILES ${HEADERS}
   DESTINATION include/${CMAKE_PROJECT_NAME}/${LIB_NAME}

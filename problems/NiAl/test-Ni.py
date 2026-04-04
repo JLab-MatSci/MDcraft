@@ -107,7 +107,8 @@ atoms.data["rns"] = kBuf*atoms.data["rcut"]
 nlist = VerletList(
 	atoms     = atoms,
 	neighbors = atoms,
-	threads   = threads
+	threads   = threads,
+	domain    = domain
 )
 nlist.update()
 
