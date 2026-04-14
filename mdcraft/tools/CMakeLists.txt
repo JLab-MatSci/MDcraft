@@ -12,13 +12,13 @@ file(GLOB HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 install(FILES ${HEADERS}
   DESTINATION include/${PROJECT_NAME}/${LIB}
 )
-install(TARGETS ${PROJECT_NAME}-${LIB} DESTINATION lib)
+mdcraft_install_runtime_library(${PROJECT_NAME}-${LIB})
 
 target_link_libraries(${PROJECT_NAME}-${LIB} PUBLIC ${PROJECT_NAME}-data)
 
 # link for multi-threading
 if (mdcraft_ENABLE_TBB)
-    find_package(TBB REQUIRED)
+    mdcraft_find_tbb_dependency()
     target_link_libraries(${PROJECT_NAME}-${LIB} PUBLIC TBB::tbb)
 else ()
     find_package(Threads REQUIRED)

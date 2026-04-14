@@ -12,7 +12,7 @@ target_link_libraries(${PROJECT_NAME}-${LIB}
          ${PROJECT_NAME}-tools
 )
 
-install(TARGETS ${PROJECT_NAME}-${LIB} DESTINATION lib)
+mdcraft_install_runtime_library(${PROJECT_NAME}-${LIB})
 
 set(HEADERS
       base.h

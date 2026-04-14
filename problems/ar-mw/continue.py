@@ -148,7 +148,8 @@ stepper = Stepper(
 nlist = VerletList(
 	atoms     = atoms,
 	neighbors = atoms,
-	threads   = threads
+	threads   = threads,
+	domain	= domain
 )
 nlist.update()
 

@@ -1,4 +1,2 @@
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-      DESTINATION ${CMAKE_INSTALL_PREFIX}
-   FILES_MATCHING PATTERN "*.py"
-)
+add_subdirectory(cxx)
+add_subdirectory(python)

@@ -13,6 +13,7 @@ namespace mdcraft::lattice {
 */
 class Domain {
 public:
+	Domain() = default;
 	/** \brief
 		\~russian Конструктор класса.
 		\~english Class constructor.

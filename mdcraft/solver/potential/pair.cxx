@@ -114,7 +114,8 @@ void Pair::value(const double* r2, double* Uout, std::size_t size) {
 }
 
 double Pair::value(const double* r2, std::size_t size) {
-	double R1, RN, VR, DV, aa, bb, Utot;
+	double R1, RN, VR, DV, aa, bb;
+	double Utot = 0.0;
 	int N1;
 
 	#pragma ivdep
@@ -155,7 +156,7 @@ matrix Pair::virial(
 ) {
 	double R1, R2, RN, VR, DV, FF, aa, bb;
 	int N1;
-	matrix Vtot;
+	matrix Vtot = matrix::Zero();
 	#pragma ivdep
 	#pragma vector aligned
 	for (std::size_t k = 0; k < size; k++){
@@ -232,6 +233,57 @@ void Pair::virial(
 }
 
 void Pair::virial(Atoms::iterator self, Atoms& neibs, NeibsListOne& nlist) {
+	if (nlist.half()) {
+		auto& atom = *self;
+
+		for (std::size_t i = 0; i < nlist.size(); ++i) {
+			const auto j = nlist[i];
+			auto& neib = neibs[j];
+
+			const vector r_ji = neib.r - atom.r;
+			const double r2ij = r_ji.squaredNorm();
+
+			if (r2ij > R2cut || r2ij < 1e-15) continue;
+
+			double R2 = r2ij;
+			double R1 = std::sqrt(R2);
+			double RN = R1 * dr1;
+			int N1 = std::trunc(RN);
+
+			double VR = 0.0;
+			double DV = 0.0;
+			double FF = 0.0;
+			double aa = 0.0;
+			double bb = 0.0;
+
+			if (N1 < Nr1) {
+				VR = N1;
+				DV = RN - VR;
+				RN = R1 - VR * dr;
+
+				VR = (Vpar[N1 + 1] - Vpar[N1]) * dr1;
+				aa = (dVpar[N1 + 1] - VR) - (VR - dVpar[N1]);
+				bb = aa - (VR - dVpar[N1]);
+				aa = aa * DV;
+
+				VR = Vpar[N1] + RN * (dVpar[N1] + DV * (aa - bb));
+				DV = dVpar[N1] + 2.0 * DV * (1.5 * aa - bb);
+			}
+
+			FF = ((DV * R1 - VR) / R2) / R1;
+			const vector F = FF * r_ji;
+			const matrix V = 0.5 * F * r_ji.transpose();
+			const double E = value(&R2, 1);
+
+			atom.V += V;
+			atom.Ep += E;
+			neib.V += V;
+			neib.Ep += E;
+		}
+
+		return;
+	}
+
 	// use std::vector instead of c-array: almost no difference
 	auto const nlist_size = nlist.size();
 	auto& atom = *self;
@@ -278,7 +330,7 @@ vector Pair::force(
 ) {
 	double R1, R2, RN, VR, DV, FF, aa, bb;
 	int N1;
-	vector Ftot;
+	vector Ftot = vector::Zero();
 	#pragma ivdep
 	#pragma vector aligned
 	for (std::size_t k = 0; k < size; k++){
@@ -357,6 +409,53 @@ void Pair::force(
 }
 
 void Pair::force(Atoms::iterator self, Atoms& neibs, NeibsListOne& nlist) {
+	if (nlist.half()) {
+		auto& atom = *self;
+
+		for (std::size_t i = 0; i < nlist.size(); ++i) {
+			const auto j = nlist[i];
+			auto& neib = neibs[j];
+
+			const vector r_ji = neib.r - atom.r;
+			const double r2ij = r_ji.squaredNorm();
+
+			if (r2ij > R2cut || r2ij < 1e-15) continue;
+
+			double R2 = r2ij;
+			double R1 = std::sqrt(R2);
+			double RN = R1 * dr1;
+			int N1 = std::trunc(RN);
+
+			double VR = 0.0;
+			double DV = 0.0;
+			double FF = 0.0;
+			double aa = 0.0;
+			double bb = 0.0;
+
+			if (N1 < Nr1) {
+				VR = N1;
+				DV = RN - VR;
+				RN = R1 - VR * dr;
+
+				VR = (Vpar[N1 + 1] - Vpar[N1]) * dr1;
+				aa = (dVpar[N1 + 1] - VR) - (VR - dVpar[N1]);
+				bb = aa - (VR - dVpar[N1]);
+				aa = aa * DV;
+
+				VR = Vpar[N1] + RN * (dVpar[N1] + DV * (aa - bb));
+				DV = dVpar[N1] + 2.0 * DV * (1.5 * aa - bb);
+			}
+
+			FF = ((DV * R1 - VR) / R2) / R1;
+			const vector F = FF * r_ji;
+
+			atom.f += F;
+			neib.f -= F;
+		}
+
+		return;
+	}
+
 	// use std::vector instead of c-array: almost no difference
 	auto const nlist_size = nlist.size();
 	auto& atom = *self;

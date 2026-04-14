@@ -1,15 +1,10 @@
 #include <iostream>
+#include <utility>
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <mpi4py/mpi4py.h>
 
 #include <mdcraft/decomp/VD3.h>
-
-struct Center3D {
-    double x;
-    double y;
-    double z;
-};
 
 namespace py = pybind11;
 
@@ -20,13 +15,69 @@ using mdcraft::tools::Threads;
 using mdcraft::decomp::Decomp;
 using mdcraft::decomp::VD3;
 
-PYBIND11_MODULE(_mdcraft_decomp, m) {
+std::vector<mdcraft::data::vector> convert_centers(const py::object& obj) {
+	using mdcraft::data::vector;
 
-PYBIND11_NUMPY_DTYPE(Center3D,
-    x,
-    y,
-    z
-);
+	// 1. None object -> empty centers
+	if (obj.is_none()) { return {}; }
+
+	// 2. Если это list
+	if (py::isinstance<py::list>(obj)) {
+		auto lst = obj.cast<py::list>();
+		py::size_t n = lst.size();
+		std::vector<vector> result(n);
+		for (py::size_t i = 0; i < n; ++i) {
+			py::object item = lst[i];
+			// 2a. Элемент — тоже list/tuple (например [x,y,z])
+			if (py::isinstance<py::list>(item) || py::isinstance<py::tuple>(item)) {
+				auto it = py::cast<py::list>(item);
+				if (it.size() != 3) {
+					throw std::runtime_error("Each center must have 3 coords");
+				}
+				double x = py::cast<double>(it[0]);
+				double y = py::cast<double>(it[1]);
+				double z = py::cast<double>(it[2]);
+				result[i] = {x, y, z};
+				continue;
+			}
+			// 2b. Элемент — numpy.array([x,y,z])
+			if (py::isinstance<py::array>(item)) {
+				auto arr = item.cast<py::array>();
+				if (arr.ndim() != 1 || arr.shape(0) != 3) {
+					throw std::runtime_error("Each center must have 3 coords");
+				}
+				auto buf = arr.request();
+				auto ptr = static_cast<double*>(buf.ptr);
+				result[i] = {ptr[0], ptr[1], ptr[2]};
+				continue;
+			}
+			throw std::runtime_error("Unsupported center type");
+		}
+		return result;
+	}
+
+    // 2. Если это numpy.ndarray
+	if (py::isinstance<py::array>(obj)) {
+        auto arr = obj.cast<py::array>();
+        if (arr.ndim() != 2 || arr.shape(1) != 3) {
+            throw std::runtime_error("Expected array of shape (N, 3)");
+        }
+        auto buf = arr.request();
+        auto ptr = static_cast<double*>(buf.ptr);
+        auto n = arr.shape(0);
+
+    	std::vector<vector> result(n);
+        for (py::size_t i = 0; i < n; ++i) {
+            result[i] = {ptr[0], ptr[1], ptr[2]};
+            ptr += 3;
+        }
+        return result;
+    }
+
+    throw std::runtime_error("Unsupported centers type, expected list of triplets or (N, 3) array)");
+}
+
+PYBIND11_MODULE(_mdcraft_decomp, m) {
 
 py::class_<Decomp>(m, "Decomp")
 	.def_property_readonly("rank", [](Decomp& D) -> int {
@@ -63,31 +114,26 @@ py::class_<Decomp>(m, "Decomp")
 	)
 ;
 
+
+
 py::class_<VD3, Decomp>(m, "VD3")
     .def(py::init([](
-            py::object             comm_obj,
-            Atoms&                 atoms,
-            Domain&                domain,
-            int                    dimension,
-            py::array_t<Center3D>& centers,
-            Threads&               pool,
-            double                 mobility,
-            double                 centroidal,
-            double                 growth_rate,
-            const std::string&     measurer
+            py::object         comm_obj,
+            Atoms&             atoms,
+            Domain&            domain,
+            int                dimension,
+            py::object         centers,
+            Threads&           pool,
+            double             mobility,
+            double             centroidal,
+            double             growth_rate,
+            const std::string& measurer
     ) {
     	// extract communicator from comm_obj
     	MPI_Comm comm = ((PyMPICommObject*) comm_obj.ptr())->ob_mpi;
     	// fill coords if needed
-	    auto cppcenters = std::vector<mdcraft::data::vector>(centers.size());
-	    if (centers.size() > 0) {
-	    	auto pycenters = centers.data(); 
-	    	for (int i = 0; i < centers.size(); ++i) {
-	    		cppcenters[i].x() = pycenters[i].x;
-	    		cppcenters[i].y() = pycenters[i].y;
-	    		cppcenters[i].z() = pycenters[i].z;
-	    	}
-	    }
+	    auto cpp_centers = convert_centers(centers);
+
     	VD3* vd3 = new VD3(
        		comm,
 		    atoms,
@@ -99,7 +145,7 @@ py::class_<VD3, Decomp>(m, "VD3")
         		.centroidal  = centroidal,
         		.growth_rate = growth_rate
 			},
-			cppcenters
+			cpp_centers
         );
     	vd3->set_measurer(measurer);
     	return vd3;
@@ -107,23 +153,12 @@ py::class_<VD3, Decomp>(m, "VD3")
         py::arg("atoms"), 
         py::arg("domain"),
         py::arg("dimension") = 1,
-        py::arg("centers") = py::array_t<Center3D>(),
+        py::arg("centers") = py::none(),
         py::arg("threads") = mdcraft::tools::dummy_pool,
         py::arg("mobility") = 0.2,
         py::arg("centroidal") = 0.25,
         py::arg("growth_rate") = 0.02,
         py::arg("measurer") = "time"
-    )
-    .def_property_readonly("centers", [](VD3& vd3) -> py::array {
-    	py::array_t<Center3D> centers(vd3.size());
-    	auto pycenters  = centers.mutable_data();
-    	auto cppcenters = vd3.centers(); 
-    	for (int i = 0; i < vd3.size(); ++i) {
-    		pycenters[i].x = cppcenters[i].x();
-    		pycenters[i].y = cppcenters[i].y();
-    		pycenters[i].z = cppcenters[i].z();
-    	}
-        return centers;
-    });
+    );
 
 }

@@ -1,8 +1,8 @@
 #include <iomanip>
 #include <fstream>
-#include <filesystem>
 
 #include <mdcraft/tools/network.h>
+#include <mdcraft/tools/filesystem.h>
 #include <mdcraft/io/vtk/pvd_file.h>
 #include <mdcraft/io/vtk/vtu_file.h>
 
@@ -45,7 +45,7 @@ PvdFile::PvdFile(Network network, const std::string& filename, const std::string
 #endif
 
 void PvdFile::open(const std::string& filename, const std::string& _directory, bool distributed) {
-    namespace fs = std::filesystem;
+    namespace fs = mdcraft::tools::filesystem;
 
     if (m_open) { return; }
 

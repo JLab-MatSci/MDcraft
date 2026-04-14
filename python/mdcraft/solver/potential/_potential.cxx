@@ -2,6 +2,7 @@
 
 #include <mdcraft/configuration.h>
 #include <mdcraft/solver/potential/LJs.h>
+#include <mdcraft/solver/potential/LJs-cut.h>
 #include <mdcraft/solver/potential/EAM.h>
 #include <mdcraft/solver/potential/pair.h>
 #include <mdcraft/tools/threads.h>
@@ -35,6 +36,7 @@ using ::mdcraft::tools::Threads;
 
 using Potential = ::mdcraft::solver::potential::Base;
 using LJs       = ::mdcraft::solver::potential::LJs;
+using LJsCut       = ::mdcraft::solver::potential::LJsCut;
 using EAM       = ::mdcraft::solver::potential::EAM;
 using Pair      = ::mdcraft::solver::potential::Pair;
 #ifdef mdcraft_ENABLE_MLIP4
@@ -102,6 +104,16 @@ py::class_<LJs,Potential>(m, "LJs")
 		ljspot.value(&r2, &u, 1);
 		return u;
 	});
+
+py::class_<LJsCut,Potential>(m, "LJsCut")
+	.def(py::init<double, double, double>(),
+		py::arg("a"),
+		py::arg("s"),
+		py::arg("rcut")
+	)
+	;
+
+m.attr("LJsTEST") = m.attr("LJsCut");
 
 py::class_<EAM,Potential>(m, "EAM")
 	.def(py::init([](

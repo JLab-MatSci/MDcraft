@@ -1,12 +1,12 @@
 #include <fstream>
-#include <filesystem>
 #include <utility>
 
 #include <mdcraft/io/vtk/vtu_file.h>
+#include <mdcraft/tools/filesystem.h>
 
 namespace mdcraft::io {
 
-namespace fs = std::filesystem;
+namespace fs = mdcraft::tools::filesystem;
 
 using namespace data;
 

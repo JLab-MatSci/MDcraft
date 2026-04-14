@@ -1,3 +1,4 @@
+mdcraft_install_python_file(${CMAKE_CURRENT_SOURCE_DIR}/__init__.py ".")
 add_subdirectory(data)
 if (mdcraft_ENABLE_MPI)
 add_subdirectory(decomp)

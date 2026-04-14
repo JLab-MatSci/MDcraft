@@ -87,6 +87,35 @@ void LJs::virial(const vector* r, const double* r2, matrix* Vout, std::size_t si
 }
 
 void LJs::virial(Atoms::iterator atomit, Atoms& neibs, NeibsListOne& nlist) {
+	if (nlist.half()) {
+		auto& atom = *atomit;
+
+		for (std::size_t i = 0; i < nlist.size(); ++i) {
+			const auto j = nlist[i];
+			auto& neib = neibs[j];
+
+			const vector r_ji = neib.r - atom.r;
+			const double r2ij = r_ji.squaredNorm();
+
+			if (r2ij > R2cut || r2ij < 1e-15) continue;
+
+			double XX = rVr1 * r2ij - X2min;
+			double FV = rVr2 / r2ij;
+			double Ur = FV * FV * FV;
+			double FF = aVr2 * (Ur * (Ur - 0.5) * FV + (aLJ + bLJ * XX) * XX);
+			const vector F = FF * r_ji;
+			const matrix V = 0.5 * F * r_ji.transpose();
+			const double E = aVr * (Ur * (Ur - 1.0) - (aLJ3 + bLJ2 * XX) * XX * XX);
+
+			atom.V += V;
+			atom.Ep += E;
+			neib.V += V;
+			neib.Ep += E;
+		}
+
+		return;
+	}
+
 	std::vector<vector> rall(nlist.size());
 	std::vector<double> r2  (nlist.size());
 
@@ -169,6 +198,31 @@ void LJs::force(const vector* r, vector* Fout, std::size_t size) {
 }
 
 void LJs::force(Atoms::iterator atomit, Atoms& neibs, NeibsListOne& nlist) {
+	if (nlist.half()) {
+		auto& atom = *atomit;
+
+		for (std::size_t i = 0; i < nlist.size(); ++i) {
+			const auto j = nlist[i];
+			auto& neib = neibs[j];
+
+			const vector r_ji = neib.r - atom.r;
+			const double r2ij = r_ji.squaredNorm();
+
+			if (r2ij > R2cut || r2ij < 1e-15) continue;
+
+			double XX = rVr1 * r2ij - X2min;
+			double FV = rVr2 / r2ij;
+			double Ur = FV * FV * FV;
+			double FF = aVr2 * (Ur * (Ur - 0.5) * FV + (aLJ + bLJ * XX) * XX);
+			const vector F = FF * r_ji;
+
+			atom.f += F;
+			neib.f -= F;
+		}
+
+		return;
+	}
+
 	std::vector<vector> rall(nlist.size());
 	std::vector<double> r2  (nlist.size());
 

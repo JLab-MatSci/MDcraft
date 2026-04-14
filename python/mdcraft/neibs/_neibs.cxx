@@ -25,13 +25,15 @@ py::class_<VerletList>(m, "VerletList", "Verlet List class")
         Atoms&   atoms,
         Atoms&   neibs,
         Domain&  domain,
-        Threads& threads
+        Threads& threads,
+        bool     half
     ) {
         auto nlist = new VerletList(
             atoms,
             neibs,
             domain,
-            threads
+            threads,
+            half
         );
         return nlist;
     }),
@@ -39,6 +41,7 @@ py::class_<VerletList>(m, "VerletList", "Verlet List class")
         py::arg("neighbors"),
         py::arg("domain"),
         py::arg("threads")    = mdcraft::tools::dummy_pool,
+        py::arg("half")       = false,
         R"(class constructor
 
         Parameters
@@ -52,6 +55,8 @@ py::class_<VerletList>(m, "VerletList", "Verlet List class")
             Problem dimension
         threads : Threads, optional
             Threads. See User guide for more information.
+        half : bool, optional
+            Is this a half- or full-list?
 
     )")
     .def("update", [](VerletList& nlist,
@@ -96,6 +101,22 @@ py::class_<VerletList>(m, "VerletList", "Verlet List class")
     .def("get", [](VerletList& nlist) -> NeibsList& {
         return nlist.get();
     }, py::return_value_policy::reference_internal)
+    .def_property_readonly("half", [](VerletList& nlist) -> bool {
+        return nlist.is_half();
+    })
+    .def("decide", [](VerletList& nlist) -> bool {
+        return nlist.decide();
+    },
+        R"(Checks whether the current neighbor list should be rebuilt
+
+        Returns
+        -------
+
+        out : bool
+            True if at least one atom moved more than half of the
+            current buffer distance since the last update().
+
+    )")
     .def("__getitem__", [](VerletList& nlist, std::size_t i) -> py::array {
         auto result = nlist[i];
         auto ptr = result.data();
