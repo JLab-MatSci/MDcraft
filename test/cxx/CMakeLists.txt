@@ -1,4 +1,5 @@
 set(MDCRAFT_CXX_TEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/solver/test_eam_regression.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/domain/test_domain.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/neibs/test_grid.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/neibs/test_verlet_list.cxx

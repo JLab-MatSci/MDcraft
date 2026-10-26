@@ -1,4 +1,6 @@
 #include <fstream>
+#include <stdexcept>
+#include <algorithm>
 #include <mdcraft/solver/potential/EAM.h>
 
 namespace mdcraft { 
@@ -22,15 +24,20 @@ EAM::EAM(
 	      int     _Nrh1,
 	      double  _drh
 ) : Base         (Rcutoff, potential::type::eam),
-    Femb         (_Nrh1), 
-    dFemb        (_Nrh1), 
-    Rho          (_Nr1), 
-    dRho         (_Nr1), 
-    Vpar         (_Nr1), 
-    dVpar        (_Nr1)
+    Femb         (std::max(0, _Nrh1)),
+    dFemb        (std::max(0, _Nrh1)),
+    Rho          (std::max(0, _Nr1)),
+    dRho         (std::max(0, _Nr1)),
+    Vpar         (std::max(0, _Nr1)),
+    dVpar        (std::max(0, _Nr1))
 {
+    if (_Nr1 < 3 || !(_dr > 0) || !(Rcutoff > 0) || !_Vpar)
+        throw std::invalid_argument("Invalid potential table dimensions or grid");
+    if (_Nrh1 < 3 || !(_drh > 0) || !_Femb || !_Rho)
+        throw std::invalid_argument("Invalid embedding table dimensions or grid");
 	Nr1  = _Nr1;
 	Nrh1 = _Nrh1;
+	R2cut = Rcutoff * Rcutoff;
 	dr   = _dr;
 	drh  = _drh;
 
@@ -54,6 +61,7 @@ EAM::EAM(
 
 EAM::EAM(std::string filename) : Base(0.0, potential::type::eam) {
 	std::ifstream file(filename);
+    if (!file) throw std::runtime_error("Cannot open potential file: " + filename);
 	int Z; double M, Ecoh;
 	std::string lattice;
 	std::string line;
@@ -64,6 +72,10 @@ EAM::EAM(std::string filename) : Base(0.0, potential::type::eam) {
 	std::getline(file, line);
 	file >> Nrh1 >> drh >> Nr1 >> dr >> R1cut;
 	file >> Z >> M >> Ecoh >> lattice;
+    if (!file || Nr1 < 3 || !(dr > 0) || !(R1cut > 0))
+        throw std::runtime_error("Invalid potential table header: " + filename);
+    if (Nrh1 < 3 || !(drh > 0))
+        throw std::runtime_error("Invalid embedding table header: " + filename);
 	dr /= 10;    // from A to nm
 	R1cut /= 10; // from A to nm
 	R2cut = R1cut * R1cut;
@@ -81,6 +93,7 @@ EAM::EAM(std::string filename) : Base(0.0, potential::type::eam) {
 	for (std::size_t i = 0; i < Nr1; ++i) {
 		file >> Vpar[i]; Vpar[i] *= Qelectron/(10*UnEnrg); // from eV*A to kJ*nm/mole
 	}
+    if (!file) throw std::runtime_error("Truncated potential table: " + filename);
 	init_spline(Vpar.data(), dVpar.data(), dr1,   Nr1, 1);
 	init_spline( Rho.data(),  dRho.data(), dr1,   Nr1, 1);
 	init_spline(Femb.data(), dFemb.data(), drh1, Nrh1, 2);
@@ -149,7 +162,7 @@ void EAM::value(const double* r2, double* Uout, std::size_t size) {
 		RN = R1*dr1;
 		N1 = std::trunc(RN);
 	
-		if (N1 < Nr1){
+		if (N1 >= 0 && N1 + 1 < Nr1){
 			VR = N1;
 			DV = RN - VR;
 			RN = R1 - VR*dr;
@@ -184,7 +197,7 @@ double EAM::value(const double* r2, std::size_t size) {
 		RN = R1*dr1;
 		N1 = std::trunc(RN);
 	
-		if (N1 < Nr1){
+		if (N1 >= 0 && N1 + 1 < Nr1){
 			VR = N1;
 			DV = RN - VR;
 			RN = R1 - VR*dr;
@@ -225,7 +238,7 @@ matrix EAM::virial(
 		RN = R1 * dr1;
 		N1 = std::trunc(RN);
 
-		if(N1 < Nr1){
+		if(N1 >= 0 && N1 + 1 < Nr1){
 			VR = N1;
 			DV = RN - VR;
 			RN = R1 - VR*dr;
@@ -273,7 +286,7 @@ void EAM::virial(
 		RN = R1 * dr1;
 		N1 = std::trunc(RN);
 
-		if(N1 < Nr1){
+		if(N1 >= 0 && N1 + 1 < Nr1){
 			VR = N1;
 			DV = RN - VR;
 			RN = R1 - VR*dr;
@@ -306,7 +319,7 @@ void EAM::virial(
 void EAM::virial(Atoms::iterator self, Atoms& neibs, NeibsListOne& nlist) {
 	// use std::vector instead of c-array: almost no difference
 	auto const nlist_size = nlist.size(); 
-	if (nlist_size == 0) return;
+
 	auto& atom = *self;
 
 	std::vector<vector> rall    (nlist_size);
@@ -331,7 +344,7 @@ void EAM::virial(Atoms::iterator self, Atoms& neibs, NeibsListOne& nlist) {
 	nCharge[nlist_size] = atom.nc;
 
 	embeddingEnergy(nCharge.data(), Femb.data(), dFemb.data(), nlist_size + 1);
-	atom.Em = Femb[nlist_size];
+	if (data::owns_atom(neibs, atom)) atom.Em += Femb[nlist_size];
 
 	std::size_t natoms = 0;
 	#pragma ivdep
@@ -370,7 +383,7 @@ vector EAM::force(
 		RN = R1 * dr1;
 		N1 = std::trunc(RN);
 
-		if(N1 < Nr1){
+		if(N1 >= 0 && N1 + 1 < Nr1){
 			VR = N1;
 			DV = RN - VR;
 			RN = R1 - VR*dr;
@@ -419,7 +432,7 @@ void EAM::force(
 		RN = R1 * dr1;
 		N1 = std::trunc(RN);
 
-		if(N1 < Nr1){
+		if(N1 >= 0 && N1 + 1 < Nr1){
 			VR = N1;
 			DV = RN - VR;
 			RN = R1 - VR*dr;
@@ -508,7 +521,7 @@ double EAM::density(const double* r2, std::size_t size){
 		RN = R1 * dr1;
 		N1 = std::trunc(RN);
 		
-		if (N1 < Nr1){
+		if (N1 >= 0 && N1 + 1 < Nr1){
 			VR = N1;
 			DV = RN - VR;
 			RN = R1 - VR*dr;  
@@ -570,33 +583,28 @@ void EAM::embeddingEnergy(
 	#pragma ivdep
 	#pragma vector aligned
 	for (std::size_t k = 0; k < size; k++){
-		RN = nr[k] * drh1;
-		N1 = std::trunc(RN);
-
-		if(RN >= 0.0 and N1 < Nrh1){
-			VR = N1;
-			DV = RN - VR;
-			RN = nr[k] - VR*drh;
-
-			VR = ( Femb[N1+1] - Femb[N1])*drh1;
-			aa = (dFemb[N1+1] - VR) - (VR - dFemb[N1]);
-			bb =                aa  - (VR - dFemb[N1]);
-			aa = aa* DV;
-
-			EF[k] =  Femb[N1] + RN*(dFemb[N1] + DV*(aa - bb));
-
-			dF[k] = dFemb[N1] + 2.0* DV*(1.5*aa - bb);
-		}
-		else {
-			if(N1 >= Nrh1){
-				EF[k] =  Femb[Nrh1] + dFemb[Nrh1]* (dF[k]-Nrh1*drh);
-				dF[k] = dFemb[Nrh1];
-			}
-			else{
-				EF[k] =  Femb[0] - dFemb[0]*dF[k];
-				dF[k] = dFemb[0];
-			}
-		}
+        const double rho = nr[k];
+        if (!std::isfinite(rho)) throw std::domain_error("Nonfinite EAM density");
+        if (rho < 0.0) {
+            EF[k] = Femb.front() + dFemb.front() * rho;
+            dF[k] = dFemb.front();
+            continue;
+        }
+        if (rho >= (Nrh1 - 1) * drh) {
+            EF[k] = Femb.back() + dFemb.back() * (rho - (Nrh1 - 1) * drh);
+            dF[k] = dFemb.back();
+            continue;
+        }
+        RN = rho * drh1;
+        N1 = std::min(static_cast<int>(RN), Nrh1 - 2);
+        DV = RN - N1;
+        const double delta = rho - N1 * drh;
+        VR = (Femb[N1+1] - Femb[N1]) * drh1;
+        aa = (dFemb[N1+1] - VR) - (VR - dFemb[N1]);
+        bb = aa - (VR - dFemb[N1]);
+        aa *= DV;
+        EF[k] = Femb[N1] + delta * (dFemb[N1] + DV * (aa - bb));
+        dF[k] = dFemb[N1] + 2.0 * DV * (1.5 * aa - bb);
 	}
 }
 
@@ -680,7 +688,7 @@ void EAM::init_spline(const double* y, double* z, double H1, std::size_t N, std:
 	         (a[N-1] + b[N-1]*s[0] + c[N-1]*s[N-2]);
 
 	for (std::size_t i = 0; i < N-1 ; i++){
-	 z[i]= s[i]*z[i] + t[i];
+	 z[i]= s[i]*z[N-1] + t[i];
 	}
 
 }

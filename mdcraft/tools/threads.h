@@ -294,8 +294,9 @@ void Threads::for_each(Iter begin, Iter end, Func &&func, Args &&... args) {
     }
     results.emplace_back(m_pool->enqueue(bin_function, from, end));
 
+    for (auto &result : results) result.wait();
     for (auto &result: results)
-        result.wait();
+        result.get();
     return;
 #endif
 }
@@ -340,8 +341,9 @@ void Threads::parallel_for(Index begin, Index end, Func &&func, Args &&... args)
     }
     results.emplace_back(m_pool->enqueue(bin_function, from, end));
 
+    for (auto &result : results) result.wait();
     for (auto &result : results)
-        result.wait();
+        result.get();
     return;
 #endif
 }
@@ -635,7 +637,8 @@ void Threads::sort(const Iter& begin, const Iter& end, BinaryOp comp) {
 			i2 += one_task_size;
 			if (i2 > end) i2 = end;
 		}
-		std::for_each(results.begin(), results.end(), [](std::future<void>& res) {res.wait();});
+		for (auto &res : results) res.wait();
+		std::for_each(results.begin(), results.end(), [](std::future<void>& res) {res.get();});
 	}
 
 	{

@@ -1,5 +1,6 @@
 #pragma once
 #include <random>
+#include <mutex>
 #include <mdcraft/data/atom.h>
 #include <mdcraft/solver/thermostat/base.h>
 
@@ -45,6 +46,7 @@ public:
 	double xmax();
 
 private:
+	std::mutex state_mutex;
 
 	double sigma, 
 	       beta,

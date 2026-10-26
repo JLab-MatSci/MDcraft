@@ -13,9 +13,6 @@ using Thermostat = thermostat::Base;
 
 using tools::Threads;
 
-using Boundary   = boundary::Base;
-using Thermostat = thermostat::Base;
-
 using NeibsListOne = ::mdcraft::neibs::ListOne;
 
 /** \brief
@@ -47,6 +44,9 @@ public:
 		\~
 	*/
 	~Pair() override = default;
+#ifdef mdcraft_ENABLE_MPI
+    void evaluate(Decomp& decomp, NeibsList& local, NeibsList& alien) override;
+#endif
 
 	/** \brief
 		\~russian Подготовить  к расчету.
@@ -262,6 +262,15 @@ public:
 
 protected:
 
+    void accumulate_virials(Atoms& atoms, Atoms& neibs, NeibsList& nlist, bool reset);
+
+    // Accumulate one neighbour-list contribution. In MPI mode, thermostat
+    // application is deferred until both local and alien passes complete.
+    void accumulate_forces(
+        Atoms& atoms, Atoms& neibs, NeibsList& nlist,
+        bool apply_thermostat
+    );
+
 	Thermostat& thermostat;
 	Boundary&   boundary;
 	Threads&    pool;
@@ -271,6 +280,32 @@ protected:
 				multithreaded execution.
 			\~
 		*/
+
+	template <typename Func>
+	void process_ghosts(
+		Atoms::iterator atomit,
+		Atoms&           neibs,
+		NeibsListOne&    nlist,
+		Func&&	         func
+	) {
+		auto& atom = *atomit;
+		auto&& ghosts = boundary.prepare_ghosts(atomit, neibs, nlist);
+		std::size_t sz = ghosts.size();
+		if (sz == 0) return;
+		NeibsListOne nlist_ghosts(sz);
+		for (std::size_t i = 0; i < sz; nlist_ghosts[i] = i, i++) {}
+        // Suppress recursive ghost expansion, but retain ALL boundary flags
+        // even if the callback fails. The flags need not equal 1.
+        const auto saved_bc = atom.bc;
+        atom.bc = 0;
+        try {
+            func(atomit, ghosts, nlist_ghosts);
+        } catch (...) {
+            atom.bc = saved_bc;
+            throw;
+        }
+        atom.bc = saved_bc;
+	}
 };
 
 } // namespace mdcraft::solver

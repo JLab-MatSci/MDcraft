@@ -39,11 +39,7 @@ void Verlet::make_step(
 	double     dt
 ) {
 	step_coords(atoms, dt);
-	solver.prepare(atoms, atoms, nlist);
-	// evaluate forces on atoms
-	for (auto& stage : solver.stages) {
-		stage(atoms, atoms, nlist);
-	}
+	solver.evaluate(atoms, nlist);
 	step_velocities(atoms, dt);
 }
 
@@ -55,15 +51,7 @@ void Verlet::make_step(
 	double      dt
 ) {
 	step_coords(decomp.locals(), dt);
-	solver.prepare(decomp.locals(), decomp.locals(), nlist1);
-
-	// evaluate forces on atoms
-	for (auto& stage : solver.stages) {
-		decomp.exchange_start();
-		stage(decomp.locals(), decomp.locals(), nlist1);
-		decomp.exchange_end();
-		stage(decomp.locals(), decomp.aliens(), nlist2);
-	}
+	solver.evaluate(decomp, nlist1, nlist2);
 	step_velocities(decomp.locals(), dt);
 }
 #endif

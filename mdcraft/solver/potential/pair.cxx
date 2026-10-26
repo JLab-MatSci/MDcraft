@@ -1,4 +1,6 @@
 #include <fstream>
+#include <stdexcept>
+#include <algorithm>
 #include <mdcraft/solver/potential/pair.h>
 
 namespace mdcraft { 
@@ -18,9 +20,11 @@ Pair::Pair(
 	      int     _Nr1,
 	      double  _dr
 ) : Base         (Rcutoff, potential::type::pair),
-    Vpar         (_Nr1), 
-    dVpar        (_Nr1)
+    Vpar         (std::max(0, _Nr1)),
+    dVpar        (std::max(0, _Nr1))
 {
+    if (_Nr1 < 3 || !(_dr > 0) || !(Rcutoff > 0) || !_Vpar)
+        throw std::invalid_argument("Invalid potential table dimensions or grid");
 	Nr1  = _Nr1;
 	dr   = _dr;
 	
@@ -35,6 +39,7 @@ Pair::Pair(
 
 Pair::Pair(std::string filename) : Base(0.0, potential::type::pair) {
 	std::ifstream file(filename);
+    if (!file) throw std::runtime_error("Cannot open potential file: " + filename);
 	int Z; double M, Ecoh;
 	std::string lattice;
 	std::string line;
@@ -44,6 +49,8 @@ Pair::Pair(std::string filename) : Base(0.0, potential::type::pair) {
 	std::getline(file, line);
 	std::getline(file, line);
 	file >> Nr1 >> dr >> R1cut;
+    if (!file || Nr1 < 3 || !(dr > 0) || !(R1cut > 0))
+        throw std::runtime_error("Invalid potential table header: " + filename);
 	dr /= 10;    // from A to nm
 	R1cut /= 10; // from A to nm
 	R2cut = R1cut * R1cut;
@@ -52,6 +59,7 @@ Pair::Pair(std::string filename) : Base(0.0, potential::type::pair) {
 	for (std::size_t i = 0; i < Nr1; ++i) {
 		file >> Vpar[i]; Vpar[i] *= Qelectron/(10*UnEnrg); // from eV*A to kJ*nm/mole
 	}
+    if (!file) throw std::runtime_error("Truncated potential table: " + filename);
 	init_spline(Vpar.data(), dVpar.data(), dr1, Nr1, 1);
 }
 
@@ -89,7 +97,7 @@ void Pair::value(const double* r2, double* Uout, std::size_t size) {
 		RN = R1*dr1;
 		N1 = std::trunc(RN);
 	
-		if (N1 < Nr1){
+		if (N1 >= 0 && N1 + 1 < Nr1){
 			VR = N1;
 			DV = RN - VR;
 			RN = R1 - VR*dr;
@@ -125,7 +133,7 @@ double Pair::value(const double* r2, std::size_t size) {
 		RN = R1*dr1;
 		N1 = std::trunc(RN);
 	
-		if (N1 < Nr1){
+		if (N1 >= 0 && N1 + 1 < Nr1){
 			VR = N1;
 			DV = RN - VR;
 			RN = R1 - VR*dr;
@@ -165,7 +173,7 @@ matrix Pair::virial(
 		RN = R1 * dr1;
 		N1 = std::trunc(RN);
 
-		if(N1 < Nr1){
+		if(N1 >= 0 && N1 + 1 < Nr1){
 			VR = N1;
 			DV = RN - VR;
 			RN = R1 - VR*dr;
@@ -207,7 +215,7 @@ void Pair::virial(
 		RN = R1 * dr1;
 		N1 = std::trunc(RN);
 
-		if(N1 < Nr1){
+		if(N1 >= 0 && N1 + 1 < Nr1){
 			VR = N1;
 			DV = RN - VR;
 			RN = R1 - VR*dr;
@@ -256,7 +264,7 @@ void Pair::virial(Atoms::iterator self, Atoms& neibs, NeibsListOne& nlist) {
 			double aa = 0.0;
 			double bb = 0.0;
 
-			if (N1 < Nr1) {
+			if (N1 >= 0 && N1 + 1 < Nr1) {
 				VR = N1;
 				DV = RN - VR;
 				RN = R1 - VR * dr;
@@ -339,7 +347,7 @@ vector Pair::force(
 		RN = R1 * dr1;
 		N1 = std::trunc(RN);
 
-		if(N1 < Nr1){
+		if(N1 >= 0 && N1 + 1 < Nr1){
 			VR = N1;
 			DV = RN - VR;
 			RN = R1 - VR*dr;
@@ -382,7 +390,7 @@ void Pair::force(
 		RN = R1 * dr1;
 		N1 = std::trunc(RN);
 
-		if(N1 < Nr1){
+		if(N1 >= 0 && N1 + 1 < Nr1){
 			VR = N1;
 			DV = RN - VR;
 			RN = R1 - VR*dr;
@@ -432,7 +440,7 @@ void Pair::force(Atoms::iterator self, Atoms& neibs, NeibsListOne& nlist) {
 			double aa = 0.0;
 			double bb = 0.0;
 
-			if (N1 < Nr1) {
+			if (N1 >= 0 && N1 + 1 < Nr1) {
 				VR = N1;
 				DV = RN - VR;
 				RN = R1 - VR * dr;
@@ -572,7 +580,7 @@ void Pair::init_spline(const double* y, double* z, double H1, std::size_t N, std
 	         (a[N-1] + b[N-1]*s[0] + c[N-1]*s[N-2]);
 
 	for (std::size_t i = 0; i < N-1 ; i++){
-	 z[i]= s[i]*z[i] + t[i];
+	 z[i]= s[i]*z[N-1] + t[i];
 	}
 
 }

@@ -90,7 +90,7 @@ def main():
         comm = MPI.COMM_WORLD
         rank, size = comm.rank, comm.size
     threads = Threads(args.threads) if args.serial else Threads(args.threads, comm)
-    directory = Path(__file__).resolve().parent
+    directory = Path(__file__).resolve().parent.parent / 'NiAl'
     potentials = (EAM(str(directory / 'Al.eam.alloy')), EAM(str(directory / 'Ni.eam.alloy')),
                   Pair(str(directory / 'NiAlpair.eam.alloy')))
     cutoff = max(p.rcut for p in potentials)
@@ -141,6 +141,8 @@ def main():
             raise RuntimeError(f'nonfinite state at step {step}')
         # Match main.py: output first, rebuild lists for the next step afterwards.
         solver.virials(*arguments())
+        if vd is not None:
+            vd.update(verbose=False)
         local.update()
         if halo is not None:
             halo.update()

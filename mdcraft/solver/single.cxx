@@ -41,7 +41,6 @@ void Single::prepare_one(
 	NeibsListOne&   nlist
 ) {
 	auto& atom = *atomit;
-	if (atom.tag == 0) return;
 	atom.f  = vector::Zero();
 	atom.V  = matrix::Zero();
 	atom.Ep = 0.0;
@@ -49,6 +48,7 @@ void Single::prepare_one(
 		atom.Em = 0.0;
 		atom.nc = 0.0;
 	}
+	for (auto& rho : atom.nc_mod) rho = 0.0;
 	atom.rcut = potential.rcut();
 }
 

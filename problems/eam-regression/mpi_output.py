@@ -59,11 +59,11 @@ def local_snapshot(atoms):
     data = atoms.data
     snapshot = np.empty(data.size, dtype=SNAPSHOT_DTYPE)
     snapshot["id"] = data["uid"]
-    snapshot["type"] = np.asarray(data["kind"], dtype=np.int32) + 1  # Al=1, Ni=2
+    snapshot["type"] = np.asarray(data["kind"], dtype=np.int32) + 1  # zero-based kinds become LAMMPS types 1 and 2
     for axis in ("x", "y", "z"):
         snapshot[axis] = data["r"][axis]
     if not np.all((snapshot["type"] == 1) | (snapshot["type"] == 2)):
-        raise ValueError("unexpected atomic kind (expected Al=0, Ni=1)")
+        raise ValueError("unexpected atomic kind (expected kinds 0 and 1)")
     return snapshot
 
 

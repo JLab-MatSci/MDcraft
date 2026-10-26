@@ -1,5 +1,7 @@
 #pragma once
 #include <vector>
+#include <functional>
+#include <limits>
 #include <mdcraft/data/vector.h>
 #include <mdcraft/data/matrix.h>
 
@@ -29,6 +31,7 @@ struct Atom {
     double           Ep;   // potential energy
     double           Em;   // embedding energy (for EAM)
     double           nc;   // charge density (for EAM)
+    double           nc_mod[2];   // charge density (for EAM)
     unsigned short   bc;   // boundary condition type
     unsigned short kind;   // atom type
     unsigned int    uid;   // atom unique id
@@ -38,6 +41,14 @@ struct Atom {
 };
 
 using Atoms = std::vector<Atom>;
+
+// Constant-time ownership check, including when a pass contains no neighbours.
+inline bool owns_atom(const Atoms& atoms, const Atom& atom) {
+    const std::less<const Atom*> before;
+    return !atoms.empty() && !before(&atom, atoms.data()) &&
+           before(&atom, atoms.data() + atoms.size());
+}
+
 
 } // data
 } // mdcraft

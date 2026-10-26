@@ -26,7 +26,7 @@ void Periodic::prepare_one(
 	NeibsListOne&   nlist
 ) {
 	auto& atom = *atomit;
-	atom.bc += need_apply(atomit);
+	atom.bc |= need_apply(atomit);
 	if (!(atom.bc & type)) return;
 	// auto ghosts = prepare_ghosts(atomit, neibs, nlist);
 	// if (ghosts.size() == 0) return;

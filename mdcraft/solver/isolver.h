@@ -21,6 +21,10 @@ using StageFunc = std::function<void(Atoms&, Atoms&, NeibsList&)>;
 class ISolver {
 public:
 	virtual ~ISolver();
+	virtual void evaluate(Atoms& atoms, NeibsList& nlist);
+#ifdef mdcraft_ENABLE_MPI
+	virtual void evaluate(Decomp& decomp, NeibsList& local, NeibsList& alien);
+#endif
 
 	virtual void prepare(Atoms& atoms, Atoms& neibs, NeibsList& nlist);
 

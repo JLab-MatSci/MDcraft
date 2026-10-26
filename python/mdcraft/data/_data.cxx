@@ -37,6 +37,7 @@ struct Atom {
     double         Ep;
     double         Em;
     double         nc;
+    double         nc_mod[2];
     unsigned short bc;
     unsigned short kind;
     unsigned int   uid;
@@ -72,6 +73,7 @@ PYBIND11_NUMPY_DTYPE(Atom,
     Ep,
     Em,
     nc,
+    nc_mod,
     bc,
     kind,
     uid,
