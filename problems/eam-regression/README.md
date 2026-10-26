@@ -82,3 +82,34 @@ stress test of the shared Langevin RNG also passed.
 
 These results validate implementation consistency with the supplied public
 and synthetic fixtures; they do not validate a private C/H parameter fit.
+
+## Diagnosing cluster heap corruption
+
+`malloc(): invalid size (unsorted)` at `Multi::add_potential` can be a delayed
+report of an earlier invalid write. Do not treat the vector allocation itself
+as the established source of corruption. First run without private data:
+
+```bash
+mpiexec -n 1 python diagnose-runtime.py --threads 1
+mpiexec -n 2 python diagnose-runtime.py --threads 2
+```
+
+The script prints the interpreter, actual extension/shared-library paths, Atom
+dtype offsets and MPI implementation, then creates 1000 Multi factories using
+synthetic coefficients. It does not read a data file or create a decomposition.
+This is a localization aid, not a complete ABI-compatibility proof. In this
+branch's tested build Atom has itemsize 224 and nc_mod has two double entries;
+platform/compiler differences must be evaluated against matching native builds.
+
+Check that every rank imports the intended package and no older libmdcraft is
+loaded from another prefix through LD_LIBRARY_PATH. After changes to Atom,
+Pair/ISolver, potential classes, compiler flags or MPI, use a new build directory
+and reinstall all native libraries AND Python extensions together. The MPI used
+by mpi4py must match the one used to build MDcraft.
+
+If factory stress passes but main-ch.py fails, capture the full native backtrace
+and determine whether the first failure occurs before or after data conversion,
+VD3 initialization, initial forces or the first integration step. For a debug
+build, use AddressSanitizer/UndefinedBehaviorSanitizer (including Python extension
+modules), or Valgrind to locate the first invalid write. Fixing the final malloc
+failure site without that evidence can only hide the underlying error.
