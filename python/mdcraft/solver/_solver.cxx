@@ -78,28 +78,25 @@ py::class_<Single, Pair>(m, "Single")
 		py::arg("potential"),
 		py::arg("boundary")   = mdcraft::solver::boundary::dummy_boundary,
 		py::arg("thermostat") = mdcraft::solver::thermostat::dummy_thermostat,
-		py::arg("threads")    = mdcraft::tools::dummy_pool
+		py::arg("threads")    = mdcraft::tools::dummy_pool,
+        py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),
+        py::keep_alive<1, 4>(), py::keep_alive<1, 5>()
 	);
 
 py::class_<Multi, Pair>(m, "Multi")
-	// .def(py::init<
-	// 	Boundary&,
-	// 	Thermostat&,
-	// 	std::size_t,
-	// 	Threads&
-	// 	>(), 
-	// 	py::arg("boundary")   = mdcraft::solver::boundary::dummy_boundary,
-	// 	py::arg("thermostat") = mdcraft::solver::thermostat::dummy_thermostat,
-	// 	py::arg("nkinds")     = 1,
-	// 	py::arg("threads")    = mdcraft::tools::dummy_pool
-	// )
+	.def(py::init<Boundary&, Thermostat&, std::size_t, Threads&>(),
+        py::arg("boundary") = mdcraft::solver::boundary::dummy_boundary,
+        py::arg("thermostat") = mdcraft::solver::thermostat::dummy_thermostat,
+        py::arg("nkinds") = 1,
+        py::arg("threads") = mdcraft::tools::dummy_pool,
+        py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 5>())
 	.def("add_potential", [](Multi& multi, 
 		std::size_t i,
 		std::size_t j,
 		Potential&  pot
 	) {
 		multi.add_potential(i,j,pot);
-	});
+	}, py::keep_alive<1, 4>());
 
 #ifdef mdcraft_ENABLE_MLIP
 py::class_<MLIP, Pair>(m, "MLIP")
