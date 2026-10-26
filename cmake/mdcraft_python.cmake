@@ -1,3 +1,11 @@
+function(mdcraft_require_full_install)
+  install(CODE "
+    if(NOT MDCRAFT_FULL_INSTALL)
+      message(FATAL_ERROR \"Install MDcraft from the TOP-LEVEL build directory: cmake --install <build-root> (or make install there). Partial subdirectory installation can mix incompatible core and Python modules.\")
+    endif()
+  ")
+endfunction()
+
 function(mdcraft_require_python_module module_name)
   set(options)
   set(oneValueArgs PURPOSE INSTALL_HINT)
@@ -29,6 +37,7 @@ function(mdcraft_require_python_module module_name)
 endfunction()
 
 function(mdcraft_setup_python_environment)
+  set(Python_FIND_VIRTUALENV FIRST)
   find_package(Python 3 REQUIRED COMPONENTS Interpreter Development.Module)
   set(Python_EXECUTABLE "${Python_EXECUTABLE}" CACHE FILEPATH "Python interpreter used to build mdcraft" FORCE)
   set(Python_EXECUTABLE "${Python_EXECUTABLE}" PARENT_SCOPE)
@@ -81,31 +90,16 @@ function(mdcraft_setup_python_environment)
     set(_python_extension_suffix "${CMAKE_SHARED_MODULE_SUFFIX}")
   endif()
 
-  if(mdcraft_PYTHON_INSTALL_LAYOUT STREQUAL "site-packages")
-    if(mdcraft_PYTHON_SITEARCH)
-      set(_python_sitearch "${mdcraft_PYTHON_SITEARCH}")
-    else()
-      execute_process(
-        COMMAND "${Python_EXECUTABLE}" -c "import sysconfig; print(sysconfig.get_path('platlib'))"
-        OUTPUT_VARIABLE _python_sitearch
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        RESULT_VARIABLE _python_sitearch_result
-      )
-      if(NOT _python_sitearch_result EQUAL 0 OR _python_sitearch STREQUAL "")
-        message(FATAL_ERROR "Failed to determine Python site-packages directory for ${Python_EXECUTABLE}.")
-      endif()
-    endif()
-
-    set(_python_package_root "${_python_sitearch}/${PROJECT_NAME}")
-    set(_python_library_dir "${_python_package_root}/.libs")
-    set(_python_extension_rpath "$ORIGIN/../.libs;$ORIGIN/../../.libs")
-  elseif(mdcraft_PYTHON_INSTALL_LAYOUT STREQUAL "legacy")
-    set(_python_package_root "python/${PROJECT_NAME}")
-    set(_python_library_dir "${CMAKE_INSTALL_LIBDIR}")
-    set(_python_extension_rpath "$ORIGIN/../../../${CMAKE_INSTALL_LIBDIR};$ORIGIN/../../../../${CMAKE_INSTALL_LIBDIR}")
-  else()
-    message(FATAL_ERROR "Unsupported mdcraft_PYTHON_INSTALL_LAYOUT='${mdcraft_PYTHON_INSTALL_LAYOUT}'. Expected 'site-packages' or 'legacy'.")
+  execute_process(
+    COMMAND "${Python_EXECUTABLE}" -c "import sysconfig; print(sysconfig.get_path('platlib'))"
+    OUTPUT_VARIABLE _python_sitearch OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE _python_sitearch_result)
+  if(NOT _python_sitearch_result EQUAL 0 OR _python_sitearch STREQUAL "")
+    message(FATAL_ERROR "Cannot determine site-packages for ${Python_EXECUTABLE}")
   endif()
+  set(_python_package_root "${_python_sitearch}/${PROJECT_NAME}")
+  set(_python_library_dir "${_python_package_root}/.libs")
+  set(_python_extension_rpath "$ORIGIN/../.libs;$ORIGIN/../../.libs")
 
   set(PYTHON_MODULE_PREFIX "" CACHE INTERNAL "Prefix used for Python extension modules")
   set(PYTHON_MODULE_EXTENSION "${_python_extension_suffix}" CACHE INTERNAL "Suffix used for Python extension modules")
@@ -115,6 +109,7 @@ function(mdcraft_setup_python_environment)
 endfunction()
 
 function(mdcraft_install_runtime_library target_name)
+  mdcraft_require_full_install()
   set_target_properties(${target_name} PROPERTIES
     BUILD_RPATH_USE_ORIGIN ON
     INSTALL_RPATH "$ORIGIN"
@@ -128,7 +123,7 @@ function(mdcraft_install_runtime_library target_name)
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   )
 
-  if(mdcraft_ENABLE_PYTHON AND mdcraft_PYTHON_INSTALL_LAYOUT STREQUAL "site-packages")
+  if(mdcraft_ENABLE_PYTHON)
     install(
       TARGETS ${target_name}
       LIBRARY DESTINATION "${mdcraft_PYTHON_LIBRARY_DIR}"
@@ -147,6 +142,10 @@ function(mdcraft_configure_runtime_executable target_name)
 endfunction()
 
 function(mdcraft_configure_python_extension target_name relative_package_dir)
+  mdcraft_require_full_install()
+  string(REPLACE "/" "." _module_dir "${relative_package_dir}")
+  set_property(GLOBAL APPEND PROPERTY MDCRAFT_INSTALL_MODULES
+    "mdcraft.${_module_dir}.${target_name}")
   set_target_properties(${target_name} PROPERTIES
     PREFIX "${PYTHON_MODULE_PREFIX}"
     SUFFIX "${PYTHON_MODULE_EXTENSION}"
@@ -162,8 +161,33 @@ function(mdcraft_configure_python_extension target_name relative_package_dir)
 endfunction()
 
 function(mdcraft_install_python_file source_file relative_package_dir)
+  mdcraft_require_full_install()
   install(
     FILES "${source_file}"
     DESTINATION "${mdcraft_PYTHON_PACKAGE_ROOT}/${relative_package_dir}"
   )
+endfunction()
+
+function(mdcraft_finalize_python_install)
+  message(STATUS "MDcraft installation interpreter: ${Python_EXECUTABLE}")
+  message(STATUS "MDcraft Python package destination: ${mdcraft_PYTHON_PACKAGE_ROOT}")
+  message(STATUS "MDcraft Python core-library destination: ${mdcraft_PYTHON_LIBRARY_DIR}")
+  message(STATUS "MDcraft C++ core-library destination: ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
+  get_property(_modules GLOBAL PROPERTY MDCRAFT_INSTALL_MODULES)
+  set(MDCRAFT_INSTALL_MODULES "['mdcraft'")
+  foreach(_module IN LISTS _modules)
+    string(APPEND MDCRAFT_INSTALL_MODULES ", '${_module}'")
+  endforeach()
+  string(APPEND MDCRAFT_INSTALL_MODULES "]")
+  configure_file("${PROJECT_SOURCE_DIR}/cmake/verify_python_install.py.in"
+                 "${PROJECT_BINARY_DIR}/verify_python_install.py" @ONLY)
+  if(NOT CMAKE_CROSSCOMPILING)
+    install(CODE "
+      execute_process(COMMAND \"${Python_EXECUTABLE}\" \"${PROJECT_BINARY_DIR}/verify_python_install.py\"
+                      RESULT_VARIABLE _mdcraft_check)
+      if(NOT _mdcraft_check EQUAL 0)
+        message(FATAL_ERROR \"MDcraft Python installation verification failed. See the import/destination error above.\")
+      endif()
+    ")
+  endif()
 endfunction()

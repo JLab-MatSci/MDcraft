@@ -76,7 +76,7 @@ Python environment:
 - `VENV_DIR`: create or reuse this virtual environment and use its `bin/python`
 - `VENV_BASE_PYTHON`: interpreter used to create `VENV_DIR`
 - `SKIP_PIP_INSTALL`: skip `pip` installation steps when set to `ON`
-- `PYTHON_INSTALL_LAYOUT`: choose the Python installation layout used by CMake
+- `OFFLINE=ON`: skip pip and prohibit automatic dependency downloads
 
 Feature selection:
 
@@ -185,7 +185,7 @@ cmake -S . -B build/linux-mpi-release -G "Unix Makefiles" \
   -Dmdcraft_ENABLE_PROBLEMS=ON \
   -Dmdcraft_THREADS_TYPE=STD \
   -Dmdcraft_FETCH_MISSING_DEPS=ON \
-  -Dmdcraft_PYTHON_INSTALL_LAYOUT=site-packages
+
 
 cmake --build build/linux-mpi-release --parallel
 cmake --install build/linux-mpi-release
@@ -368,3 +368,50 @@ On macOS use `DYLD_LIBRARY_PATH` instead of `LD_LIBRARY_PATH`:
 export DYLD_LIBRARY_PATH=/Users/username/soft/mdcraft/lib:${DYLD_LIBRARY_PATH}
 export PYTHONPATH=/Users/username/soft/mdcraft/python:${PYTHONPATH}
 ```
+
+
+## Updating an existing Python environment (including offline clusters)
+
+MDcraft always installs Python extensions, every `__init__.py`, and matching
+core libraries into the site-packages of **Python_EXECUTABLE selected during
+configuration**. The core copies needed by Python live in `mdcraft/.libs`.
+C++ libraries are also installed under CMAKE_INSTALL_PREFIX/lib or lib64.
+Changing that C++ prefix does not select a different Python environment.
+Legacy layouts and old mdcraft_PYTHON_SITEARCH overrides are no longer used.
+
+Activate your existing environment, then configure a fresh build directory:
+
+```bash
+cmake -S . -B build-eam-clean \
+  -DPython_EXECUTABLE="$VIRTUAL_ENV/bin/python" \
+  -Dmdcraft_ENABLE_PYTHON=ON -Dmdcraft_ENABLE_MPI=ON \
+  -Dmdcraft_FETCH_MISSING_DEPS=OFF \
+  -DCMAKE_INSTALL_PREFIX="$PWD/.local"
+cmake --build build-eam-clean --parallel 4
+cmake --install build-eam-clean
+```
+
+All prerequisites (including Eigen, numpy, pybind11, MPI/mpi4py for MPI builds)
+must already be available offline. Tests/examples are optional and may need
+additional locally installed dependencies. The bootstrap equivalent is
+`OFFLINE=ON VENV_DIR="$VIRTUAL_ENV" ./scripts/bootstrap_linux.sh`; offline mode
+never runs pip and disables dependency downloads. No internet is required by
+installation itself.
+
+Run `make install` from the **top-level build directory**. Partial installation
+from a C++ or Python subdirectory is rejected before it can mix package versions.
+A normal install finishes with an import check in the configured interpreter:
+it verifies extension locations, EAM bindings and loaded core-library locations.
+Conflicting PYTHONPATH/LD_LIBRARY_PATH entries produce a clear installation error.
+You should not copy native libraries or `__init__.py` manually.
+
+The installation regression can be run after building:
+
+```bash
+python scripts/test_python_install.py --build-dir build-eam-clean --python "$VIRTUAL_ENV/bin/python"
+```
+
+It uses a temporary DESTDIR, deliberately replaces `__init__.py` and removes an
+extension, verifies that reinstall repairs both, and checks rejection of partial
+installs and conflicting core binaries. It does not modify the installed user
+package. Identical core copies in the C++ prefix and Python `.libs` are accepted.

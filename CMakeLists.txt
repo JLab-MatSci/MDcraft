@@ -24,11 +24,14 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/.local" CACHE PATH "Install prefix" FORCE)
 endif()
 
+# A subdirectory install can otherwise update core libraries while skipping Python.
+install(CODE "set(MDCRAFT_FULL_INSTALL TRUE)")
+
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 include(GNUInstallDirs)
 
 option(mdcraft_ENABLE_MPI            "Distributed computing with MPI"                ON)
-option(mdcraft_ENABLE_PYTHON         "Python support"                                OFF)
+option(mdcraft_ENABLE_PYTHON         "Python support"                                ON)
 option(mdcraft_ENABLE_TESTS          "Build tests"                                   OFF)
 option(mdcraft_ENABLE_PROBLEMS       "Build problems"                                OFF)
 option(mdcraft_ENABLE_BPNN           "Behler-Parrinello NN potentials support"       OFF)
@@ -36,9 +39,13 @@ option(mdcraft_ENABLE_DeePMD         "DeePmd NN potentials support"             
 option(mdcraft_ENABLE_MLIP4          "MTP potentials support from MLIP4"             OFF)
 option(mdcraft_FETCH_MISSING_DEPS    "Download missing third-party CMake dependencies automatically" ON)
 
-set(mdcraft_PYTHON_INSTALL_LAYOUT "site-packages" CACHE STRING "Python install layout: site-packages or legacy")
-set_property(CACHE mdcraft_PYTHON_INSTALL_LAYOUT PROPERTY STRINGS "site-packages;legacy")
-set(mdcraft_PYTHON_SITEARCH "" CACHE PATH "Absolute Python site-packages directory to install the mdcraft package into")
+# Native and pure Python files always belong to the selected interpreter.
+set(mdcraft_PYTHON_INSTALL_LAYOUT "site-packages")
+if(mdcraft_PYTHON_SITEARCH OR (DEFINED CACHE{mdcraft_PYTHON_INSTALL_LAYOUT} AND NOT "$CACHE{mdcraft_PYTHON_INSTALL_LAYOUT}" STREQUAL "site-packages"))
+  message(WARNING "Legacy Python destination settings are ignored. MDcraft installs into Python_EXECUTABLE's site-packages. Use a fresh build directory when switching environments.")
+endif()
+unset(mdcraft_PYTHON_SITEARCH CACHE)
+unset(mdcraft_PYTHON_INSTALL_LAYOUT CACHE)
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_definitions(-DDEBUG)
 endif()
@@ -91,4 +98,10 @@ endif()
 
 if(mdcraft_ENABLE_PROBLEMS)
 add_subdirectory(problems)
+endif()
+
+if(mdcraft_ENABLE_PYTHON)
+  mdcraft_finalize_python_install()
+else()
+  message(STATUS "MDcraft Python bindings are DISABLED; install will update C++ only. Use -Dmdcraft_ENABLE_PYTHON=ON to install Python.")
 endif()

@@ -23,7 +23,7 @@ ENABLE_PROBLEMS="${ENABLE_PROBLEMS:-ON}"
 THREADS_TYPE="${THREADS_TYPE:-STD}"
 ENABLE_BPNN="${ENABLE_BPNN:-OFF}"
 FETCH_MISSING_DEPS="${FETCH_MISSING_DEPS:-ON}"
-PYTHON_INSTALL_LAYOUT="${PYTHON_INSTALL_LAYOUT:-site-packages}"
+OFFLINE="${OFFLINE:-OFF}"
 SKIP_PIP_INSTALL="${SKIP_PIP_INSTALL:-OFF}"
 if [[ -n "${ENABLE_DEEPMD+x}" && -n "${ENABLE_DeePMD+x}" && "${ENABLE_DEEPMD}" != "${ENABLE_DeePMD}" ]]; then
   echo "ENABLE_DEEPMD and ENABLE_DeePMD are both set but differ. Please use one value." >&2
@@ -57,7 +57,7 @@ Environment variables:
   VENV_DIR              Create/use this virtual environment instead of PYTHON_BIN
   VENV_BASE_PYTHON      Python used to create VENV_DIR (default: ${VENV_BASE_PYTHON})
   SKIP_PIP_INSTALL      ON/OFF, skip pip upgrade/install steps (default: ${SKIP_PIP_INSTALL})
-  PYTHON_INSTALL_LAYOUT 'site-packages' or 'legacy' (default: ${PYTHON_INSTALL_LAYOUT})
+  OFFLINE              ON skips pip and forbids dependency downloads (default: ${OFFLINE})
 
   ENABLE_MPI            ON/OFF, enable MPI build (default: ${ENABLE_MPI})
   MPI_C_COMPILER        MPI C wrapper (default: ${MPI_C_COMPILER})
@@ -101,6 +101,11 @@ if [[ $# -gt 0 ]]; then
 fi
 
 EXTRA_CMAKE_ARGS=("$@")
+if [[ "${OFFLINE}" == "ON" ]]; then
+  SKIP_PIP_INSTALL=ON
+  FETCH_MISSING_DEPS=OFF
+  EXTRA_CMAKE_ARGS+=(-Dmdcraft_FETCH_MISSING_DEPS=OFF -DFETCHCONTENT_FULLY_DISCONNECTED=ON)
+fi
 
 if [[ -n "${CMAKE_GENERATOR}" ]]; then
   GENERATOR_ARGS=(-G "${CMAKE_GENERATOR}")
@@ -197,7 +202,6 @@ CONFIGURE_ARGS=(
   -Dmdcraft_ENABLE_DeePMD="${ENABLE_DEEPMD}"
   -Dmdcraft_ENABLE_MLIP4="${ENABLE_MLIP4}"
   -Dmdcraft_FETCH_MISSING_DEPS="${FETCH_MISSING_DEPS}"
-  -Dmdcraft_PYTHON_INSTALL_LAYOUT="${PYTHON_INSTALL_LAYOUT}"
 )
 
 if [[ "${ENABLE_MPI}" == "ON" ]]; then
@@ -226,8 +230,4 @@ fi
 "${RUN_ENV[@]}" "${CMAKE_BIN}" --install "${BUILD_DIR}"
 
 echo
-echo "MDcraft is available to Python from:"
-"${PYTHON_BIN}" - <<'PY'
-import sysconfig
-print(sysconfig.get_path("platlib"))
-PY
+echo "MDcraft installation verified for ${PYTHON_BIN}; see the package and core-library destinations above."
