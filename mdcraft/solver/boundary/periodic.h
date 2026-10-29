@@ -59,6 +59,8 @@ public:
 	) override;
 
 private:
+	Atoms make_ghosts(Atoms::iterator atom, Atoms& neibs,
+	                  NeibsListOne& nlist, bool with_density);
 
 	unsigned short need_apply(
 		Atoms::iterator atom
