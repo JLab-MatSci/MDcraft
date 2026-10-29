@@ -50,6 +50,12 @@ def parse_args(argv=None):
                    help="original uses EAMW1046/EAMW0644 as in main.py; modified uses EAMWMOD1046/EAMWMOD0644")
     p.add_argument("--temperature", type=float, default=2000.0, help="Langevin bath temperature, K")
     p.add_argument("--beta", type=float, default=0.5, help="Langevin friction, ps^-1")
+    thermostat_options = p.add_mutually_exclusive_group()
+    thermostat_options.add_argument("--thermostat", dest="thermostat_on", action="store_true",
+                                    help="enable Langevin for the integration solver (default)")
+    thermostat_options.add_argument("--no-thermostat", dest="thermostat_on", action="store_false",
+                                    help="disable Langevin for the integration solver (NVE)")
+    p.set_defaults(thermostat_on=True)
     p.add_argument("--dt", type=float, default=1e-3, help="timestep, ps")
     p.add_argument("--tend", type=float, default=1200.0, help="end time, ps")
     p.add_argument("--steps", type=int, default=None, help="override tend/dt step count")
@@ -255,7 +261,7 @@ def main(argv=None):
     nlist_local.update()
     nlist_halo.update()
 
-    solver, thermostat = make_solver(boundary, threads, potentials, args.temperature, args.beta, args.dt, True)
+    solver, thermostat = make_solver(boundary, threads, potentials, args.temperature, args.beta, args.dt, args.thermostat_on)
     boundary_cold = Periodic(domain)
     solver_cold, thermostat_cold = make_solver(boundary_cold, threads, potentials, args.temperature, args.beta, args.dt, False)
     stepper = Stepper(solver=solver, threads=threads)
@@ -275,6 +281,8 @@ def main(argv=None):
         print(f"Atoms total={sum(counts)} (C={counts[0]}, H={counts[1]}), "
               f"VD3 grid={grid}, cutoffs={cutoffs}, kbuf={args.kbuf}, "
               f"pair EAM={args.like_pairs}", flush=True)
+        print(f"Integration thermostat: {'Langevin' if args.thermostat_on else 'OFF (NVE)'}; "
+              "solver_cold thermostat: OFF", flush=True)
 
     try:
         if args.log_every:
